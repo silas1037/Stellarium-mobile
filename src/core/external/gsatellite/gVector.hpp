@@ -28,8 +28,7 @@
 #ifndef _GVECTOR_HPP_
 #define _GVECTOR_HPP_ 1
 
-// #include "gVectorTempl.hpp"
-#include <vector>
+#include "gVectorTempl.hpp"
 
 //## Class: gVector
 //	This class implement the needed code to make vector calculations.
@@ -38,7 +37,7 @@
 //
 //	This class has not overlapped the = operator and the copy constructor
 //	because this methods are given by the vector STL class.
-class gVector : public std::vector<double>
+class gVector : public br_stl::gVectorTempl<double>
 {
 
 public:

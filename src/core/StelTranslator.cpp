@@ -17,7 +17,7 @@
 * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
 */
 
-#include "config.h"
+
 #include <cstdio>
 #include <algorithm>
 #include <fstream>
@@ -87,8 +87,7 @@ void StelTranslator::init(const QString& fileName)
 //! Try to determine system language from system configuration
 void StelTranslator::initSystemLanguage()
 {
-	char* lang = getenv("LANGUAGE");
-	if (!lang) lang = getenv("LANG");
+	char* lang = getenv("LANGUAGE") ?: getenv("LANG");
 	if (lang) systemLangName = lang;
 	else
 	{

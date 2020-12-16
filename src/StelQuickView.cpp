@@ -17,7 +17,6 @@
  * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
  */
 
-#include "config.h"
 #include "StelQuickView.hpp"
 #include "StelApp.hpp"
 #include "StelPainter.hpp"
@@ -101,7 +100,7 @@ void QmlGuiActionItem::setAction(QString value)
 void QmlGuiActionItem::trigger()
 {
 	if (action)
-		action->trigger();
+		QMetaObject::invokeMethod(action, "trigger", Qt::AutoConnection);
 }
 
 
@@ -138,9 +137,7 @@ void StelQuickView::init(QSettings* conf)
 	qmlRegisterType<QmlGuiActionItem>("Stellarium", 1, 0, "StelAction");
 	
 #if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
-	// Removed because it breaks the search on my Huawei phone.
-	// setFlags(Qt::FramelessWindowHint | Qt::SplashScreen);
-	showFullScreen();
+	show();
 #else
 	int width = conf->value("video/screen_w", 480).toInt();
 	int height = conf->value("video/screen_h", 700).toInt();
@@ -261,7 +258,7 @@ void StelQuickView::createBlitShader()
 
 float StelQuickView::getScreenDensity() const
 {
-#if defined(Q_OS_IOS) || defined(Q_OS_WINRT)
+#if defined(Q_OS_IOS)
 	return screen()->physicalDotsPerInch()/160.f;
 #elif defined(Q_OS_ANDROID)
 	return StelAndroid::getScreenDensity()/160.f;
@@ -355,6 +352,12 @@ void StelQuickView::paint()
 
 	if (finalFbo) finalFbo->bind();
 	stelApp->draw();
+	// On my iPhone 5, with Qt 5.5, stellarium crashes when I rotate the
+	// screen.  Adding a glFush fixes the problem.  I need to test again
+	// when there is a new version of Qt.
+#ifdef Q_OS_IOS
+	glFlush();
+#endif
 }
 
 void StelQuickView::blit(QOpenGLFramebufferObject* fbo, Shader* shader)

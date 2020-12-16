@@ -411,6 +411,7 @@ Item {
 		property int margin: 8*scale
 		// A snapped menu width to avoid having menu taking almost the screen width but not quite (which looks bad)
 		property int niceMenuWidth: root.width-(400.*stellarium.guiScaleFactor)<80*stellarium.guiScaleFactor ? root.width : 400.*stellarium.guiScaleFactor
+		property int maxMenuHeight: root.height - 50 * stellarium.guiScaleFactor
 		property color color0: "#01162d"
 		property color color1: "#012d1b"
 	}

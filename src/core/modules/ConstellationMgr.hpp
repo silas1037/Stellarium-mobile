@@ -197,6 +197,13 @@ public slots:
 	//! Get the font size used for constellation names display
 	float getFontSize() const;
 
+	//! Set the thickness of lines of the constellations
+	//! @param thickness of line in pixels
+	void setConstellationLineThickness(const double thickness);
+	//! Get the thickness of lines of the constellations
+	double getConstellationLineThickness() const { return constellationLineThickness; }
+
+
 signals:
 	void artDisplayedChanged(const bool displayed) const;
 	void artFadeDurationChanged(const float duration) const;
@@ -302,6 +309,9 @@ private:
 	bool boundariesDisplayed;
 	bool linesDisplayed;
 	bool namesDisplayed;
+
+	// Store the thickness of lines of the constellations
+	float constellationLineThickness;
 };
 
 #endif // _CONSTELLATIONMGR_HPP_

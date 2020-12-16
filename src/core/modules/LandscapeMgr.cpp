@@ -726,8 +726,8 @@ QString LandscapeMgr::installLandscapeFromArchive(QString sourceFilePath, bool d
 	}
 	QDir destinationDir (parentDestinationDir.absoluteFilePath("landscapes"));
 
-	QZipReader reader(sourceFilePath);
-	if (reader.status() != QZipReader::NoError)
+	Stel::QZipReader reader(sourceFilePath);
+	if (reader.status() != Stel::QZipReader::NoError)
 	{
 		qWarning() << "LandscapeMgr: Unable to open as a ZIP archive:" << QDir::toNativeSeparators(sourceFilePath);
 		emit errorNotArchive();
@@ -736,8 +736,8 @@ QString LandscapeMgr::installLandscapeFromArchive(QString sourceFilePath, bool d
 
 	//Detect top directory
 	QString topDir, iniPath;
-	QList<QZipReader::FileInfo> infoList = reader.fileInfoList();
-	foreach(QZipReader::FileInfo info, infoList)
+	QList<Stel::QZipReader::FileInfo> infoList = reader.fileInfoList();
+	foreach(Stel::QZipReader::FileInfo info, infoList)
 	{
 		QFileInfo fileInfo(info.filePath);
 		if (fileInfo.fileName() == "landscape.ini")
@@ -802,7 +802,7 @@ QString LandscapeMgr::installLandscapeFromArchive(QString sourceFilePath, bool d
 	}
 	destinationDir.cd(landscapeID);
 	QString destinationDirPath = destinationDir.absolutePath();
-	foreach(QZipReader::FileInfo info, infoList)
+	foreach(Stel::QZipReader::FileInfo info, infoList)
 	{
 		QFileInfo fileInfo(info.filePath);
 		if (info.isFile && fileInfo.dir().path() == topDir)

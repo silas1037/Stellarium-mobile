@@ -17,7 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
  */
 
-#include "config.h"
+
 #include <QDateTime>
 #include <QQuickItem>
 
@@ -63,6 +63,7 @@ class StelQuickStelItem : public QQuickItem
 	Q_PROPERTY(QString gpsState READ getGpsState NOTIFY gpsStateChanged)
 	Q_PROPERTY(int lightPollution READ getLightPollution WRITE setLightPollution NOTIFY lightPollutionChanged)
 	Q_PROPERTY(int milkyWayBrightness READ getMilkyWayBrightness WRITE setMilkyWayBrightness NOTIFY milkyWayBrightnessChanged)
+	Q_PROPERTY(int linesThickness READ getLinesThickness WRITE setLinesThickness NOTIFY LinesThicknessChanged)
 public:
 	StelQuickStelItem();
 	QString getSelectedObjectName() const;
@@ -115,6 +116,8 @@ public:
 	void setLightPollution(int value);
 	int getMilkyWayBrightness() const;
 	void setMilkyWayBrightness(int value);
+	int getLinesThickness() const;
+	void setLinesThickness(int value);
 	Q_INVOKABLE void resetSettings();
 
 protected:
@@ -138,6 +141,7 @@ signals:
 	void gpsStateChanged();
 	void lightPollutionChanged();
 	void milkyWayBrightnessChanged();
+	void LinesThicknessChanged();
 
 private slots:
 	void update();

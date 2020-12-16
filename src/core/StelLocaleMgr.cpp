@@ -17,12 +17,12 @@
  * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
  */
 
-#include "config.h"
 #include "StelLocaleMgr.hpp"
 #include "StelApp.hpp"
 #include "StelUtils.hpp"
 #include "StelFileMgr.hpp"
 
+#include <QDataStream>
 #include <QLocale>
 #include <QDebug>
 #include <QSettings>

@@ -29,7 +29,7 @@
 
 #include <stdio.h>
 
-#if defined Q_OS_WIN && !defined Q_OS_WINRT
+#ifdef Q_OS_WIN
 # include <windows.h>
 # ifndef _SHOBJ_H
 # include <shlobj.h>
@@ -48,7 +48,7 @@ QString StelFileMgr::installDir;
 void StelFileMgr::init()
 {
 	// Set the userDir member.
-#if defined Q_OS_WIN && !defined Q_OS_WINRT
+#ifdef Q_OS_WIN
 	QString winApiPath = getWin32SpecialDirPath(CSIDL_APPDATA);
 	if (!winApiPath.isEmpty())
 	{
@@ -56,8 +56,6 @@ void StelFileMgr::init()
 	}
 #elif defined(Q_OS_MAC)
 	userDir = QDir::homePath() + "/Library/Application Support/Stellarium";
-#elif defined(Q_OS_WINRT)
-	userDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/.stellarium";
 #else
 	userDir = QDir::homePath() + "/.stellarium";
 #endif
@@ -107,9 +105,6 @@ void StelFileMgr::init()
 #elif defined Q_OS_ANDROID
 		QFileInfo installLocation("assets:");
 		QFileInfo checkFile("assets:/" + QString(CHECK_FILE));
-#elif defined Q_OS_WINRT
-		QFileInfo installLocation(":/data/");
-		QFileInfo checkFile(":/data/" CHECK_FILE);
 #else
 		// Linux, BSD, Solaris etc.
 		// We use the value from the config.h filesystem
@@ -475,7 +470,7 @@ void StelFileMgr::makeSureDirExistsAndIsWritable(const QString& dirFullPath)
 	}
 }
 
-#if defined Q_OS_WIN && !defined Q_OS_WINRT
+#ifdef Q_OS_WIN
 QString StelFileMgr::getWin32SpecialDirPath(int csidlId)
 {
 	// This function is implemented using code from QSettings implementation in QT

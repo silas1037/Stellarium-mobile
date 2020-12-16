@@ -121,12 +121,12 @@ StelSkyDrawer::StelSkyDrawer(StelCore* acore) : core(acore)
 	
 	vertexArray = new StarVertex[maxPointSources*6];
 	
-	textureCoordArray = new GLfloat[maxPointSources*6*2];
+	textureCoordArray = new unsigned char[maxPointSources*6*2];
 	for (unsigned int i=0;i<maxPointSources; ++i)
 	{
-		static const GLfloat texElems[] = {0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1};
-		GLfloat* elem = &textureCoordArray[i*6*2];
-		memcpy(elem, texElems, 12 * sizeof(GLfloat));
+		static const unsigned char texElems[] = {0, 0, 255, 0, 255, 255, 0, 0, 255, 255, 0, 255};
+		unsigned char* elem = &textureCoordArray[i*6*2];
+		memcpy(elem, texElems, 12);
 	}
 }
 
@@ -397,7 +397,7 @@ void StelSkyDrawer::postDrawPointSource(StelPainter* sPainter)
 	starShaderProgram->setAttributeArray(starShaderVars.color, GL_UNSIGNED_BYTE, (GLubyte*)&(vertexArray[0].color), 3, 12);
 	starShaderProgram->enableAttributeArray(starShaderVars.color);
 	starShaderProgram->setUniformValue(starShaderVars.projectionMatrix, qMat);
-	starShaderProgram->setAttributeArray(starShaderVars.texCoord, GL_FLOAT, (GLfloat*)textureCoordArray, 2, 0);
+	starShaderProgram->setAttributeArray(starShaderVars.texCoord, GL_UNSIGNED_BYTE, (GLubyte*)textureCoordArray, 2, 0);
 	starShaderProgram->enableAttributeArray(starShaderVars.texCoord);
 	
 	glDrawArrays(GL_TRIANGLES, 0, nbPointSources*6);

@@ -26,6 +26,7 @@
 #include "StelApp.hpp"
 #include "StelCore.hpp"
 #include "StelIniParser.hpp"
+#include "ConstellationMgr.hpp"
 #include "SolarSystem.hpp"
 #include "StelLocaleMgr.hpp"
 #include "LandscapeMgr.hpp"
@@ -98,11 +99,15 @@ bool StelQuickStelItem::eventFilter(QObject* obj, QEvent* event)
 double StelQuickStelItem::getJd() const
 {
 	StelCore* core = StelApp::getInstance().getCore();
-	return core->getJDay();
+	double jd = core->getJDay(); // (TT).
+	// Convert to UT (Note: what we really want is UTC).
+	jd -= StelApp::getInstance().getCore()->getDeltaT(jd) / 86400;
+	return jd;
 }
 
 void StelQuickStelItem::setJd(double value)
 {
+	value += StelApp::getInstance().getCore()->getDeltaT(value) / 86400;
 	StelApp::getInstance().getCore()->setJDay(value);
 	emit timeChanged();
 }
@@ -239,6 +244,11 @@ void StelQuickStelItem::touch(int state, float x, float y)
 QString StelQuickStelItem::getPrintableTime() const
 {
 	double jd = StelApp::getInstance().getCore()->getJDay();
+	// Convert from TT to UT1.
+	// XXX: it would be better to merge the changes from trunk so that we can
+	// use getJD (-> UT) and getJDE (-> TT).
+	// Note: what we really want is UTC.
+	jd -= StelApp::getInstance().getCore()->getDeltaT(jd) / 86400;
 	QString time = StelApp::getInstance().getLocaleMgr().getPrintableDateLocal(jd) + " "
 			+ StelApp::getInstance().getLocaleMgr().getPrintableTimeLocal(jd);
 	return time.trimmed();
@@ -503,7 +513,7 @@ bool StelQuickStelItem::isDay() const
 
 bool StelQuickStelItem::isDesktop() const
 {
-#if defined Q_OS_ANDROID || defined Q_OS_IOS || defined Q_OS_WINPHONE
+#if defined Q_OS_ANDROID || defined Q_OS_IOS
 	return false;
 #else
 	return true;
@@ -555,12 +565,27 @@ void StelQuickStelItem::setMilkyWayBrightness(int value)
 	emit milkyWayBrightnessChanged();
 }
 
+int StelQuickStelItem::getLinesThickness() const
+{
+	ConstellationMgr* mw = GETSTELMODULE(ConstellationMgr);
+	return mw->getConstellationLineThickness();
+}
+
+void StelQuickStelItem::setLinesThickness(int value)
+{
+	ConstellationMgr* mw = GETSTELMODULE(ConstellationMgr);
+	mw->setConstellationLineThickness(value);
+	StelApp::getInstance().getSettings()->setValue("viewing/constellation_line_thickness", value);
+	emit LinesThicknessChanged();
+}
+
 void StelQuickStelItem::resetSettings()
 {
 	QString defaultConfigFilePath = StelFileMgr::findFile("data/default_config.ini");
 	QSettings conf(defaultConfigFilePath, StelIniFormat);
 	setMilkyWayBrightness(conf.value("astro/milky_way_intensity",1.f).toFloat());
 	setLightPollution(conf.value("stars/init_bortle_scale",2).toInt());
+	setLinesThickness(conf.value("viewing/constellation_line_thickness",1).toInt());
 	QMetaObject::invokeMethod(mainThreadProxy, "setCurrentLandscapeID", Qt::AutoConnection,
 	                          Q_ARG(QString, conf.value("init_location/landscape_name").toString()));
 	StelSkyCultureMgr* sc = &StelApp::getInstance().getSkyCultureMgr();
@@ -581,7 +606,9 @@ void StelQuickStelItem::resetSettings()
 	    {"actionShow_Planets_Labels", "astro/flag_planets_labels"},
 	    {"actionShow_Planets_Hints", "astro/flag_planets_hints"},
 	    {"actionShow_Ecliptic_Line", "viewing/flag_ecliptic_line"},
-	    {"actionNight_Mode", "viewing/flag_ecliptic_line"},
+	    {"actionShow_Meridian_Line", "viewing/flag_meridian_line"},
+	    {"actionNight_Mode", "viewing/flag_night"},
+	    {"actionShow_Constellation_Boundaries", "viewing/flag_constellation_boundaries"},
 	};
 	for (unsigned int i = 0; i < sizeof(actions) / sizeof(actions[0]); i++)
 	{

@@ -217,6 +217,12 @@ StelViewportDistorterFisheyeToSphericMirror::StelViewportDistorterFisheyeToSpher
 											(vertex_point.h<=0.0) ? 0.0 : exp(gamma*log(vertex_point.h/max_h));
 				vertex_point.color[3] = 1.0f;
 			}
+#ifdef _MSC_BUILD // MSVC does not have a trunc function
+	maxGridX = (int)floor(0.5 + screenWidth / triangleBaseLength);
+	maxGridY = (int)floor(screenHeight / (triangleBaseLength * 0.5 * sqrt(3.0)));
+#else
+#endif
+//	stepX = screenWidth / (double)(maxGridX - 0.5);
 		}
 	}
 	else

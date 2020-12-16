@@ -250,7 +250,6 @@ StelApp::~StelApp()
 	singleton = NULL;
 }
 
-#ifndef Q_OS_WINRT
 void StelApp::setupHttpProxy()
 {
 	QString proxyHost = confSettings->value("proxy/host_name").toString();
@@ -317,9 +316,6 @@ void StelApp::setupHttpProxy()
 		QNetworkProxy::setApplicationProxy(proxy);
 	}
 }
-#else
-void StelApp::setupHttpProxy() {}
-#endif
 
 #ifndef DISABLE_SCRIPTING
 void StelApp::initScriptMgr(QSettings *conf)

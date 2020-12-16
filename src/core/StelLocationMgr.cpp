@@ -22,6 +22,7 @@
 #include "StelUtils.hpp"
 
 #include <QStringListModel>
+#include <QDataStream>
 #include <QDebug>
 #include <QFile>
 #include <QDir>

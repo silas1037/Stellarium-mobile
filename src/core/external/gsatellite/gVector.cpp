@@ -29,13 +29,13 @@
 #include <cassert>
 #include <math.h>
 gVector::gVector()
-	: std::vector<double>()
+	: br_stl::gVectorTempl<double>()
 {
 
 }
 
 gVector::gVector(unsigned int ai_uiElementsNumber)
-	: std::vector<double>(ai_uiElementsNumber)
+	: br_stl::gVectorTempl<double>(ai_uiElementsNumber)
 {
 
 }

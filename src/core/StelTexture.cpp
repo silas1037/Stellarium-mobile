@@ -230,7 +230,7 @@ QByteArray StelTexture::convertToGLFormat(const QImage& image, GLint *format, GL
 // Bug fix to disable mipmap on Tegra 3 OpenGL renderer (nexus 7)
 // XXX: need to retest with later versions of Qt to see if it works better then.
 // The fix is needed at least with Qt 5.4.
-const bool isTegra3()
+static bool isTegra3(void)
 {
 	return strstr((const char *)glGetString(GL_RENDERER), "Tegra 3");
 }

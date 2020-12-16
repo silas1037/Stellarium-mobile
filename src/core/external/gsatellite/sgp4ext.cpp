@@ -26,10 +26,6 @@
 #include "sgp4ext.h"
 #include "StelUtils.hpp"
 
-// WIndows rt somewhere redefine small as char!
-#ifdef small
-	#undef small
-#endif
 
 double  sgn
         (

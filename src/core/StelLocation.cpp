@@ -19,6 +19,7 @@
 #include "StelLocation.hpp"
 #include "StelLocaleMgr.hpp"
 #include "StelUtils.hpp"
+#include <QDataStream>
 #include <QStringList>
 
 // Output the location as a string ready to be stored in the user_location file

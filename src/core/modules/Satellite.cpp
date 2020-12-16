@@ -554,7 +554,7 @@ void Satellite::draw(StelCore* core, StelPainter& painter, float)
 			drawColor = hintColor;
 		painter.setColor(drawColor[0], drawColor[1], drawColor[2], hintBrightness);
 		Vec3d xy;
-		if (prj->project(XYZ,xy))
+		if (prj->projectCheck(XYZ,xy))
 		{
 			if (Satellite::showLabels)
 				painter.drawText(xy[0], xy[1], name, 0, 10, 10, false);
