@@ -70,6 +70,11 @@ float StelAndroid::getScreenDensity()
 	return getStellarium()->callMethod<float>("getScreenDensity", "()F");
 }
 
+bool StelAndroid::GPSSupported()
+{
+	return getStellarium()->callMethod<int>("isGPSSupported", "()I");
+}
+
 void StelAndroid::setGPSCallback(void (*callback)(double, double, double, double))
 {
 	StelAndroid::GPSCallback = callback;
@@ -82,6 +87,16 @@ void StelAndroid::setGPSCallback(void (*callback)(double, double, double, double
 int StelAndroid::getOrientation()
 {
 	return getStellarium()->callMethod<int>("getRotation", "()I");
+}
+
+void StelAndroid::setCanPause(bool value)
+{
+	getStellarium()->callMethod<void>("setCanPause", "(Z)V", value);
+}
+
+QString StelAndroid::getModel()
+{
+	return getStellarium()->callObjectMethod<jstring>("getModel").toString();
 }
 
 QStringList AndroidFileInfo::entries;

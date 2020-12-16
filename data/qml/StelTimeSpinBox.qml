@@ -22,44 +22,45 @@ import QtQuick 2.1
 StelSpinBox {
 	id: root
 	property string type // year | month | day | hour | minute | second
-	property date time
-	property date newTime // Se use it to avoid nasty loops with stellarium time!
+	property double time
+	property double newTime // Se use it to avoid nasty loops with stellarium time!
 	text: type
 	min: -10000
 	max: 10000
-	valueText: value < 10 ? "0%1".arg(value) : "%1".arg(value)
+	valueText: (type !== "year" && value < 10) ? "0%1".arg(value) : "%1".arg(value)
 
 	onTimeChanged: setValue()
 
 	function setValue() {
+		var date = jdToDate(time)
 		if (type == "year")
-			value = time.getFullYear()
+			value = date.getFullYear()
 		if (type == "month")
-			value = time.getMonth() + 1
+			value = date.getMonth() + 1
 		if (type == "day")
-			value = time.getDate()
+			value = date.getDate()
 		if (type == "hour")
-			value = time.getHours()
+			value = date.getHours()
 		if (type == "minute")
-			value = time.getMinutes()
+			value = date.getMinutes()
 		if (type == "second")
-			value = time.getSeconds()
+			value = date.getSeconds()
 	}
 
 	onValueChanged: {
-		var time = new Date(root.time)
+		var date = jdToDate(root.time)
 		if (type == "year")
-			time.setFullYear(value)
+			date.setFullYear(value)
 		if (type == "month")
-			time.setMonth(value - 1)
+			date.setMonth(value - 1)
 		if (type == "day")
-			time.setDate(value)
+			date.setDate(value)
 		if (type == "hour")
-			time.setHours(value)
+			date.setHours(value)
 		if (type == "minute")
-			time.setMinutes(value)
+			date.setMinutes(value)
 		if (type == "second")
-			time.setSeconds(value)
-		newTime = time
+			date.setSeconds(value)
+		newTime = dateToJd(date)
 	}
 }

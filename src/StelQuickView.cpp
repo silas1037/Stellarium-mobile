@@ -36,10 +36,12 @@
 #include <QSettings>
 #include <QQuickItem>
 #include <QDebug>
+#include <QGuiApplication>
 #include <QCoreApplication>
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLShader>
 #include <QScreen>
+#include <QTimer>
 
 #ifdef Q_OS_ANDROID
 #include "StelAndroid.hpp"
@@ -103,6 +105,10 @@ void QmlGuiActionItem::trigger()
 StelQuickView::StelQuickView() : stelApp(NULL), nightMode(false), quitRequested(false)
 {
 	singleton = this;
+	timer = new QTimer(this);
+	timer->setTimerType(Qt::PreciseTimer);
+	connect(timer, SIGNAL(timeout()), this, SLOT(update()));
+	timer->setInterval(15);
 	nightViewShader.prog = NULL;
 	blitShader.prog = NULL;
 	setSource(QUrl("qrc:/qml/Splash.qml"));
@@ -124,7 +130,7 @@ void StelQuickView::init(QSettings* conf)
 	qmlRegisterType<QmlGuiActionItem>("Stellarium", 1, 0, "StelAction");
 	
 #if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
-		setFlags(Qt::FramelessWindowHint | Qt::SplashScreen);
+	setFlags(Qt::FramelessWindowHint | Qt::SplashScreen);
 	showFullScreen();
 #else
 	int width = conf->value("video/screen_w", 480).toInt();
@@ -132,7 +138,8 @@ void StelQuickView::init(QSettings* conf)
 	resize(width, height);
 	show();
 #endif
-	startTimer(15, Qt::PreciseTimer);
+	timer->start();
+	QGuiApplication::instance()->installEventFilter(this);
 }
 
 void StelQuickView::deinit()
@@ -279,7 +286,8 @@ void StelQuickView::synchronize()
 	}
 	if (quitRequested)
 	{
-		deinit();
+		// For the moment we just quit the app as fast as possible.
+		// deinit();
 		QCoreApplication::instance()->quit();
 	}
 }
@@ -287,6 +295,9 @@ void StelQuickView::synchronize()
 void StelQuickView::showGui()
 {
 	setSource(QUrl("qrc:/qml/main.qml"));
+#ifdef Q_OS_ANDROID
+	StelAndroid::setCanPause(true);
+#endif
 }
 
 QOpenGLFramebufferObject* StelQuickView::createFbo()
@@ -319,6 +330,10 @@ void StelQuickView::paint()
 		finalFbo.reset();
 		setRenderTarget(NULL);
 	}
+	if (!nightMode && !finalFbo && renderTarget()!=0)
+	{
+		setRenderTarget(NULL);
+	}
 
 	if (finalFbo) finalFbo->bind();
 	stelApp->draw();
@@ -333,7 +348,7 @@ void StelQuickView::blit(QOpenGLFramebufferObject* fbo, Shader* shader)
 	    (float)size().width() / fbo->size().width(),
 	    (float)size().height() / fbo->size().height()
 	};
-	static const GLfloat vertices[][4] = {
+	const GLfloat vertices[][4] = {
 	    {-1, -1, 0, 0},
 	    {+1, -1, texSize[0], 0},
 	    {-1, +1, 0, texSize[1]},
@@ -363,8 +378,31 @@ void StelQuickView::afterRendering()
 	}
 }
 
-void StelQuickView::timerEvent(QTimerEvent*)
+bool StelQuickView::eventFilter(QObject* obj, QEvent* event)
 {
-	this->update();
+	switch (event->type())
+	{
+		case QEvent::ApplicationDeactivate:
+			timer->stop();
+			break;
+		case QEvent::ApplicationActivate:
+		case QEvent::TouchBegin:
+			timer->start();
+			break;
+		default:
+			break;
+	}
+	return QObject::eventFilter(obj, event);
+}
+
+void StelQuickView::resizeEvent(QResizeEvent* event)
+{
+	// Ensure that the buffer is discarded.
+	if (finalFbo)
+	{
+		finalFbo.reset();
+	}
+	
+	QQuickView::resizeEvent(event);
 }
 

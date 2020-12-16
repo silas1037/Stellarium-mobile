@@ -52,6 +52,17 @@ Item {
 			font.pixelSize: root.large ? rootStyle.fontExtraLargeSize : rootStyle.fontNormalSize
 			font.bold: root.large
 			anchors.horizontalCenter: parent.horizontalCenter
+
+			// Does not work with '-' on kindle fire.
+			// inputMethodHints: Qt.ImhFormattedNumbersOnly
+
+			onFocusChanged: {
+				if (!focus) {
+					root.value = parseInt(text)
+					root.valueManuallyChanged()
+				}
+			}
+
 			Keys.onReturnPressed: {
 				root.value = parseInt(text)
 				root.valueManuallyChanged()

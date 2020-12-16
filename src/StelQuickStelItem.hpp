@@ -30,7 +30,7 @@ class StelQuickStelItem : public QQuickItem
 	Q_PROPERTY(QString selectedObjectShortInfo READ getSelectedObjectShortInfo NOTIFY selectedObjectShortInfoChanged)
 	Q_PROPERTY(QString selectedObjectInfo READ getSelectedObjectInfo NOTIFY selectedObjectInfoChanged)
 	Q_PROPERTY(bool tracking READ getTracking NOTIFY trackingModeChanged)
-	Q_PROPERTY(QDateTime time READ getTime WRITE setTime NOTIFY timeChanged)
+	Q_PROPERTY(double jd READ getJd WRITE setJd NOTIFY timeChanged)
 	Q_PROPERTY(bool dragTimeMode READ getDragTimeMode WRITE setDragTimeMode NOTIFY dragTimeModeChanged)
 	Q_PROPERTY(double timeRate READ getTimeRate WRITE setTimeRate NOTIFY timeRateChanged)
 	Q_PROPERTY(QString printableTime READ getPrintableTime NOTIFY timeChanged)
@@ -46,8 +46,10 @@ class StelQuickStelItem : public QQuickItem
 	Q_PROPERTY(float guiScaleFactor READ getGuiScaleFactor NOTIFY guiScaleFactorChanged)
 	Q_PROPERTY(float fov READ getFov NOTIFY timeChanged)
 	Q_PROPERTY(QString version READ getVersion CONSTANT)
+	Q_PROPERTY(QString model READ getModel CONSTANT)
 	Q_PROPERTY(bool autoGotoNight READ getAutoGotoNight WRITE setAutoGotoNight)
 	Q_PROPERTY(bool desktop READ isDesktop CONSTANT)
+	Q_PROPERTY(QString gpsState READ getGpsState NOTIFY gpsStateChanged)
 public:
 	StelQuickStelItem();
 	QString getSelectedObjectName() const;
@@ -62,8 +64,8 @@ public:
 	Q_INVOKABLE void zoom(int direction);
 	Q_INVOKABLE void pinch(float scale, bool started);
 	Q_INVOKABLE void touch(int state, float x, float y);
-	QDateTime getTime() const;
-	Q_INVOKABLE void setTime(const QDateTime& value);
+	double getJd() const;
+	Q_INVOKABLE void setJd(double value);
 	double getTimeRate() const;
 	void setTimeRate(double value);
 	QString getPrintableTime() const;
@@ -90,10 +92,15 @@ public:
 	Q_INVOKABLE QStringList search(const QString& name);
 	Q_INVOKABLE void gotoObject(const QString& objectName);
 	QString getVersion() const {return MOBILE_GUI_VERSION;}
+	QString getModel() const;
 	Q_INVOKABLE bool isDay() const;
 	bool getAutoGotoNight() const {return autoGotoNight;}
 	void setAutoGotoNight(bool value) {autoGotoNight = value;}
 	bool isDesktop() const;
+	QString getGpsState() const;
+
+protected:
+	bool eventFilter(QObject *, QEvent *) Q_DECL_OVERRIDE;
 
 signals:
 	void clicked();
@@ -110,6 +117,7 @@ signals:
 	void currentSkyCultureBaseUrlChanged();
 	void positionChanged();
 	void guiScaleFactorChanged();
+	void gpsStateChanged();
 
 private slots:
 	void update();

@@ -33,9 +33,8 @@
 #include <QNetworkReply>
 #include <QtEndian>
 #include <QFuture>
-#include <QtConcurrent>
 
-StelTexture::StelTexture() : networkReply(NULL), loader(NULL), errorOccured(false), id(0), avgLuminance(-1.f)
+StelTexture::StelTexture() : networkReply(NULL), errorOccured(false), id(0), avgLuminance(-1.f)
 {
 	width = -1;
 	height = -1;
@@ -61,10 +60,6 @@ StelTexture::~StelTexture()
 		networkReply->abort();
 		networkReply->deleteLater();
 	}
-	if (loader != NULL) {
-		delete loader;
-		loader = NULL;
-	}
 }
 
 /*************************************************************************
@@ -89,18 +84,6 @@ StelTexture::GLData StelTexture::imageToGLData(const QImage &image)
 	return ret;
 }
 
-/*************************************************************************
- Defined to be passed to QtConcurrent::run
- *************************************************************************/
-StelTexture::GLData StelTexture::loadFromPath(const QString &path)
-{
-	return imageToGLData(QImage(path));
-}
-
-StelTexture::GLData StelTexture::loadFromData(const QByteArray& data)
-{
-	return imageToGLData(QImage::fromData(data));
-}
 
 /*************************************************************************
  Bind the texture so that it can be used for openGL drawing (calls glBindTexture)
@@ -119,7 +102,7 @@ bool StelTexture::bind()
 		return false;
 
 	// If the file is remote, start a network connection.
-	if (loader == NULL && networkReply == NULL && fullPath.startsWith("http://")) {
+	if (networkReply == NULL && fullPath.startsWith("http://")) {
 		QNetworkRequest req = QNetworkRequest(QUrl(fullPath));
 		// Define that preference should be given to cached files (no etag checks)
 		req.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
@@ -131,25 +114,18 @@ bool StelTexture::bind()
 	// The network connection is still running.
 	if (networkReply != NULL)
 		return false;
-	// Not a remote file, start a loader from local file.
-	if (loader == NULL)
-	{
-		loader = new QFuture<GLData>(QtConcurrent::run(loadFromPath, fullPath));
+	if (!fullPath.startsWith("http://"))
+		image.load(fullPath);
+
+	if (image.isNull())
 		return false;
-	}
-	// Wait until the loader finish.
-	if (!loader->isFinished())
-		return false;
-	// Finally load the data in the main thread.
-	glLoad(loader->result());
-	delete loader;
-	loader = NULL;
+	glLoad(image);
+	image = QImage();
 	return true;
 }
 
 void StelTexture::onNetworkReply()
 {
-	Q_ASSERT(loader == NULL);
 	if (networkReply->error() != QNetworkReply::NoError)
 	{
 		reportError(networkReply->errorString());
@@ -157,7 +133,7 @@ void StelTexture::onNetworkReply()
 	else
 	{
 		QByteArray data = networkReply->readAll();
-		loader = new QFuture<GLData>(QtConcurrent::run(loadFromData, data));
+		image.loadFromData(data);
 	}
 	networkReply->deleteLater();
 	networkReply = NULL;
@@ -269,7 +245,8 @@ bool StelTexture::glLoad(const GLData& data)
 				 data.type, data.data.constData());
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, loadParams.wrapMode);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, loadParams.wrapMode);
-	if (loadParams.generateMipmaps)
+	// Kindle fire 1st gen does not support mipmap on non square textures!
+	if (loadParams.generateMipmaps && (width == height))
 	{
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 		glGenerateMipmap(GL_TEXTURE_2D);

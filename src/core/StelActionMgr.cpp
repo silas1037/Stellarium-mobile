@@ -51,8 +51,6 @@ StelAction::StelAction(const QString& actionId,
 	target(NULL),
 	property(NULL)
 {
-	moveToThread(StelApp::getInstance().thread());
-	setParent(StelApp::getInstance().getStelActionManager());
 	setObjectName(actionId);
 	// Check the global conf for custom shortcuts.
 	QSettings* conf = StelApp::getInstance().getSettings();
@@ -74,6 +72,18 @@ StelAction::StelAction(const QString& actionId,
 	connect(qAction, SIGNAL(triggered()), this, SLOT(trigger()));
 	connect(this, SIGNAL(changed()), this, SLOT(onChanged()));
 #endif
+	reparent();
+}
+
+void StelAction::reparent()
+{
+	QObject* parent = StelApp::getInstance().getStelActionManager();
+	if (thread() != parent->thread()) {
+		moveToThread(parent->thread());
+		QMetaObject::invokeMethod(this, "reparent", Qt::QueuedConnection);
+		return;
+	}
+	setParent(parent);
 }
 
 #ifndef USE_QUICKVIEW

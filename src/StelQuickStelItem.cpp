@@ -17,6 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
  */
 
+#include "GPSMgr.hpp"
 #include "StelQuickStelItem.hpp"
 #include "StelObjectMgr.hpp"
 #include "StelModuleMgr.hpp"
@@ -33,6 +34,11 @@
 #include "StelLocationMgr.hpp"
 #include "StelActionMgr.hpp"
 
+#ifdef Q_OS_ANDROID
+#include "StelAndroid.hpp"
+#endif
+
+#include <QGuiApplication>
 #include <QTimer>
 #include <QSettings>
 #include <QFileInfo>
@@ -55,33 +61,44 @@ StelQuickStelItem::StelQuickStelItem()
 	connect(omgr, SIGNAL(selectedObjectChanged(StelModule::StelModuleSelectAction)), this, SIGNAL(selectedObjectInfoChanged()));
 	connect(omgr, SIGNAL(selectedObjectChanged(StelModule::StelModuleSelectAction)), this, SIGNAL(selectedObjectShortInfoChanged()));
 	connect(StelApp::getInstance().getCore(), SIGNAL(locationChanged(StelLocation)), this, SIGNAL(positionChanged()));
+	GPSMgr* gpsMgr = GETSTELMODULE(GPSMgr);
+	connect(gpsMgr, SIGNAL(stateChanged(GPSMgr::State)), this, SIGNAL(gpsStateChanged()));
 
 	QSettings* conf = StelApp::getInstance().getSettings();
 	setAutoGotoNight(conf->value("gui/auto_goto_night", true).toBool());
 	StelApp::getInstance().getStelActionManager()->addAction(
 	            "actionAuto_Goto_Night", N_("Gui Options"), N_("Move to night at startup"), this, "autoGotoNight");
+	
+	QGuiApplication::instance()->installEventFilter(this);
+	StelMainView::getInstance().installEventFilter(this);
 }
 
-QDateTime StelQuickStelItem::getTime() const
+bool StelQuickStelItem::eventFilter(QObject* obj, QEvent* event)
+{
+	switch (event->type())
+	{
+		case QEvent::ApplicationDeactivate:
+			timer->stop();
+			break;
+		case QEvent::ApplicationActivate:
+		case QEvent::TouchBegin:
+			timer->start();
+			break;
+		default:
+			break;
+	}
+	return QObject::eventFilter(obj, event);
+}
+
+double StelQuickStelItem::getJd() const
 {
 	StelCore* core = StelApp::getInstance().getCore();
-	double jd = core->getJDay();
-	jd += StelApp::getInstance().getLocaleMgr().getGMTShift(jd) / 24.0; // UTC -> local tz
-	int year, month, day, hour, minute, second;
-	StelUtils::getDateFromJulianDay(jd, &year, &month, &day);
-	StelUtils::getTimeFromJulianDay(jd, &hour, &minute, &second);
-	return QDateTime(QDate(year, month, day), QTime(hour, minute, second));
+	return core->getJDay();
 }
 
-void StelQuickStelItem::setTime(const QDateTime& value)
+void StelQuickStelItem::setJd(double value)
 {
-	double jd;
-	QDate date = value.date();
-	QTime time = value.time();
-	StelUtils::getJDFromDate(&jd, date.year(), date.month(), date.day(),
-							 time.hour(), time.minute(), time.second());
-	jd -= (StelApp::getInstance().getLocaleMgr().getGMTShift(jd)/24.0); // local tz -> UTC
-	StelApp::getInstance().getCore()->setJDay(jd);
+	StelApp::getInstance().getCore()->setJDay(value);
 	emit timeChanged();
 }
 
@@ -102,7 +119,8 @@ bool StelQuickStelItem::getTracking() const
 
 void StelQuickStelItem::update()
 {
-	emit timeChanged();
+	static double jd = 0;
+	if (jd != getJd()) emit timeChanged();
 
 	static bool flagTracking = false;
 	const bool newFlagTracking = GETSTELMODULE(StelMovementMgr)->getFlagTracking();
@@ -211,7 +229,7 @@ QString StelQuickStelItem::getPrintableTime() const
 	double jd = StelApp::getInstance().getCore()->getJDay();
 	QString time = StelApp::getInstance().getLocaleMgr().getPrintableDateLocal(jd) + " "
 			+ StelApp::getInstance().getLocaleMgr().getPrintableTimeLocal(jd);
-	return time;
+	return time.trimmed();
 }
 
 bool StelQuickStelItem::getDragTimeMode() const
@@ -430,6 +448,15 @@ void StelQuickStelItem::gotoObject(const QString& objectName)
 	}
 }
 
+QString StelQuickStelItem::getModel() const
+{
+#ifdef Q_OS_ANDROID
+	return StelAndroid::getModel();
+#else
+	return "";
+#endif
+}
+
 bool StelQuickStelItem::isDay() const
 {
 	const Vec3d& sunPos = GETSTELMODULE(SolarSystem)->getSun()->getAltAzPosApparent(StelApp::getInstance().getCore());
@@ -443,5 +470,22 @@ bool StelQuickStelItem::isDesktop() const
 #else
 	return false;
 #endif
+}
+
+QString StelQuickStelItem::getGpsState() const
+{
+	switch (GETSTELMODULE(GPSMgr)->getState())
+	{
+		case GPSMgr::Disabled:
+			return "Disabled";
+		case GPSMgr::Searching:
+			return "Searching";
+		case GPSMgr::Found:
+			return "Found";
+		case GPSMgr::Unsupported:
+			return "Unsupported";
+		default:
+			return "";
+	}
 }
 

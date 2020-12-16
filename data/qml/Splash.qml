@@ -26,4 +26,11 @@ Rectangle {
 		fillMode: Image.PreserveAspectFit
 		source: "images/about-logo.png"
 	}
+	focus: true
+	Keys.onReleased: {
+		if (event.key === Qt.Key_Back) {
+			event.accepted = true
+			Qt.quit()
+		}
+	}
 }

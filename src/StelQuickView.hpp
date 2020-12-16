@@ -69,9 +69,11 @@ protected slots:
 	void synchronize();
 	void showGui();
 protected:
-	void timerEvent(QTimerEvent* event) Q_DECL_OVERRIDE;
+	bool eventFilter(QObject *, QEvent *) Q_DECL_OVERRIDE;
+	void resizeEvent(QResizeEvent*) Q_DECL_OVERRIDE;
 private:
 	static StelQuickView* singleton;
+	class QTimer* timer;
 	StelApp* stelApp;
 	float getScreenDensity() const;
 

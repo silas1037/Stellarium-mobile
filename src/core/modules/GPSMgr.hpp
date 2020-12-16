@@ -23,16 +23,22 @@ class GPSMgr : public StelModule
 {
 	Q_OBJECT
 	Q_PROPERTY(bool enabled READ isEnabled WRITE setEnabled NOTIFY enabledChanged)
+	Q_PROPERTY(State state READ getState NOTIFY stateChanged)
 public:
+	enum State {Disabled, Searching, Found, Unsupported};
 	GPSMgr();
 	virtual ~GPSMgr();
 	virtual void init() Q_DECL_OVERRIDE;
 	virtual void update(double deltaTime) Q_DECL_OVERRIDE {Q_UNUSED(deltaTime)}
-	bool isEnabled() const {return enabled;}
+	bool isEnabled() const {return state == Searching || state == Found;}
 	void setEnabled(bool value);
 	Q_INVOKABLE void onFix(double latitude, double longitude, double altitude, double accuracy);
+	State getState() const {return state;}
 signals:
-	void enabledChanged(bool);
+	void stateChanged(GPSMgr::State value);
+	void enabledChanged(bool value);
 private:
-	bool enabled;
+	State state;
 };
+
+Q_DECLARE_METATYPE(GPSMgr::State)

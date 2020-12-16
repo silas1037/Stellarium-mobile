@@ -19,27 +19,39 @@
 
 #include "GPSMgr.hpp"
 #include "StelTranslator.hpp"
-#include "StelAndroid.hpp"
 #include "StelApp.hpp"
 #include "StelCore.hpp"
 #include "StelModuleMgr.hpp"
 #include <QDebug>
 
+#ifdef Q_OS_ANDROID
+#  include "StelAndroid.hpp"
+#  define BACKEND StelAndroid
+#elif defined Q_OS_IOS
+#  include "StelIOS.hpp"
+#  define BACKEND StelIOS
+#endif
+
 GPSMgr::GPSMgr() :
-    enabled(false)
+	state(GPSMgr::Disabled)
 {
 	setObjectName("GPSMgr");
+#ifdef Q_OS_ANDROID
+	if (!StelAndroid::GPSSupported())
+		state = Unsupported;
+#endif
 }
 
 GPSMgr::~GPSMgr()
 {
-#ifdef Q_OS_ANDROID
-	StelAndroid::setGPSCallback(NULL);
+#ifdef BACKEND
+	BACKEND::setGPSCallback(NULL);
 #endif
 }
 
 void GPSMgr::init()
 {
+	qRegisterMetaType<GPSMgr::State>("GPSMgr::State");
 	addAction("actionGPS", N_("Movement and Selection"), N_("GPS"), "enabled");
 	if (StelApp::getInstance().getCore()->getCurrentLocation().name == "GPS")
 	{
@@ -51,8 +63,8 @@ static void onLocationChanged(double latitude, double longitude, double altitude
 
 static void setGPSStatus(bool value)
 {
-#ifdef Q_OS_ANDROID
-	StelAndroid::setGPSCallback(value ? &onLocationChanged : NULL);
+#ifdef BACKEND
+	BACKEND::setGPSCallback(value ? &onLocationChanged : NULL);
 #endif
 }
 
@@ -67,11 +79,14 @@ static void onLocationChanged(double latitude, double longitude, double altitude
 
 void GPSMgr::setEnabled(bool value)
 {
-	if (value == enabled)
+	if (state == Unsupported)
 		return;
-	enabled = value;
-	setGPSStatus(enabled);
-	emit enabledChanged(enabled);
+	if (isEnabled() == value)
+		return;
+	state = value ? Searching : Disabled;
+	setGPSStatus(value);
+	emit stateChanged(state);
+	emit enabledChanged(value);
 }
 
 void GPSMgr::onFix(double latitude, double longitude, double altitude, double accuracy)
@@ -84,6 +99,10 @@ void GPSMgr::onFix(double latitude, double longitude, double altitude, double ac
 	loc.name = "GPS";
 	StelApp::getInstance().getCore()->moveObserverTo(loc, 0.);
 	StelApp::getInstance().getCore()->setDefaultLocationID(loc.getID());
-	if (accuracy < 50000)  // Stop GPS when accuracy is < 50 km.
+	if (accuracy < 500) // Stop GPS when accuracy is < 500 m.
+	{
 		setGPSStatus(false);
+		state = Found;
+		emit stateChanged(state);
+	}
 }

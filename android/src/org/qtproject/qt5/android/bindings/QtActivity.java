@@ -74,7 +74,7 @@ import android.view.WindowManager.LayoutParams;
 import android.view.accessibility.AccessibilityEvent;
 import dalvik.system.DexClassLoader;
 
-
+import com.noctuasoftware.stellarium.Stellarium;
 
 public class QtActivity extends Activity
 {
@@ -161,6 +161,7 @@ public class QtActivity extends Activity
 
     public QtActivity()
     {
+        Log.d(QtApplication.QtTAG, "QtActivity()");
         if (Build.VERSION.SDK_INT <= 10) {
             QT_ANDROID_THEMES = new String[] {"Theme_Light"};
             QT_ANDROID_DEFAULT_THEME = "Theme_Light";
@@ -507,10 +508,12 @@ public class QtActivity extends Activity
                                                 m_activityInfo.metaData.getString("android.app.static_init_classes").split(":"));
                 }
                 loaderParams.putStringArrayList(NATIVE_LIBRARIES_KEY, libraryList);
+                // XXX: QSG_RENDER_LOOP=basic added to fix a bug on Galaxy Tab3 7"
                 loaderParams.putString(ENVIRONMENT_VARIABLES_KEY, ENVIRONMENT_VARIABLES
                                                                   + "\tQML2_IMPORT_PATH=" + localPrefix + "/qml"
                                                                   + "\tQML_IMPORT_PATH=" + localPrefix + "/imports"
-                                                                  + "\tQT_PLUGIN_PATH=" + localPrefix + "/plugins");
+                                                                  + "\tQT_PLUGIN_PATH=" + localPrefix + "/plugins"
+                                                                  + "\tQSG_RENDER_LOOP=basic");
 
                 Intent intent = getIntent();
                 if (intent != null) {
@@ -704,6 +707,8 @@ public class QtActivity extends Activity
     @Override
     public void onCreate(Bundle savedInstanceState)
     {
+        Log.d(QtApplication.QtTAG, "onCreate");
+        savedInstanceState = null;
         super.onCreate(savedInstanceState);
         try {
             setTheme(Class.forName("android.R$style").getDeclaredField(QT_ANDROID_DEFAULT_THEME).getInt(null));
@@ -867,8 +872,14 @@ public class QtActivity extends Activity
     @Override
     protected void onDestroy()
     {
+        Log.d(QtApplication.QtTAG, "onDestroy");
         super.onDestroy();
-        QtApplication.invokeDelegate();
+        try {
+            QtApplication.invokeDelegate();
+        } finally {
+            // This is a hack to make sure the app is killed :(
+            java.lang.System.exit(0);
+        }
     }
     //---------------------------------------------------------------------------
 
@@ -1020,14 +1031,23 @@ public class QtActivity extends Activity
     @Override
     protected void onPause()
     {
+        Log.d(QtApplication.QtTAG, "onPause");
         super.onPause();
         QtApplication.invokeDelegate();
+        // There is a bug that makes the application freeze if we try to pause
+        // before the end of the initialization.  This is a hack to prevent
+        // that: in that case we just kill the application!
+        if (!Stellarium.canPause) {
+            finish();
+            java.lang.System.exit(0);
+        }
     }
     //---------------------------------------------------------------------------
 
     @Override
     protected void onPostCreate(Bundle savedInstanceState)
     {
+        Log.d(QtApplication.QtTAG, "onPostCreate");
         super.onPostCreate(savedInstanceState);
         QtApplication.invokeDelegate(savedInstanceState);
     }
@@ -1036,6 +1056,7 @@ public class QtActivity extends Activity
     @Override
     protected void onPostResume()
     {
+        Log.d(QtApplication.QtTAG, "onPostResume");
         super.onPostResume();
         QtApplication.invokeDelegate();
     }
@@ -1086,17 +1107,20 @@ public class QtActivity extends Activity
     @Override
     protected void onRestart()
     {
+        Log.d(QtApplication.QtTAG, "onRestart");
         super.onRestart();
         QtApplication.invokeDelegate();
     }
     //---------------------------------------------------------------------------
 
+    /*
     @Override
     protected void onRestoreInstanceState(Bundle savedInstanceState)
     {
         if (!QtApplication.invokeDelegate(savedInstanceState).invoked)
             super.onRestoreInstanceState(savedInstanceState);
     }
+    */
     public void super_onRestoreInstanceState(Bundle savedInstanceState)
     {
         super.onRestoreInstanceState(savedInstanceState);
@@ -1126,12 +1150,15 @@ public class QtActivity extends Activity
     }
     //---------------------------------------------------------------------------
 
+    /*
     @Override
     protected void onSaveInstanceState(Bundle outState)
     {
+        Log.d(QtApplication.QtTAG, "Save instance state");
         if (!QtApplication.invokeDelegate(outState).invoked)
             super.onSaveInstanceState(outState);
     }
+    */
     public void super_onSaveInstanceState(Bundle outState)
     {
         super.onSaveInstanceState(outState);
@@ -1157,6 +1184,7 @@ public class QtActivity extends Activity
     @Override
     protected void onStart()
     {
+        Log.d(QtApplication.QtTAG, "onStart");
         super.onStart();
         QtApplication.invokeDelegate();
     }
@@ -1165,6 +1193,7 @@ public class QtActivity extends Activity
     @Override
     protected void onStop()
     {
+        Log.d(QtApplication.QtTAG, "onStop");
         super.onStop();
         QtApplication.invokeDelegate();
     }

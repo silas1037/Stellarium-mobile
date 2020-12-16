@@ -113,7 +113,7 @@ Item {
 		}
 		onPositionChanged: {
 			var dist
-			dist = root.getDist(startX, startY, mouseX, mouseX)
+			dist = root.getDist(startX, startY, mouseX, mouseY)
 			if (dist >= root.moveDist)
 				mode = "MOVE"
 			if (mode === "MOVE") {

@@ -83,6 +83,7 @@ private:
 	const QKeySequence defaultAltKeySequence;
 	QObject* target;
 	const char* property;
+	Q_INVOKABLE void reparent();
 
 	// Currently, there is no proper way to handle shortcuts with non latin
 	// keyboards layouts.  So for the moment, if we don't use QuickView, we

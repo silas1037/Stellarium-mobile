@@ -24,9 +24,12 @@ class StelAndroid
 {
 public:
 	static float getScreenDensity();
+	static bool GPSSupported();
 	static void setGPSCallback(void (*callback)(double, double, double, double));
 	static void (*GPSCallback)(double, double, double, double);
 	static int getOrientation();
+	static void setCanPause(bool value);
+	static QString getModel();
 private:
 	static class QAndroidJniObject* getStellarium();
 };

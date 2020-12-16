@@ -82,7 +82,7 @@ public:
 	const QString& getFullPath() const {return fullPath;}
 
 	//! Return whether the image is currently being loaded
-	bool isLoading() const {return (loader || networkReply) && !canBind();}
+	bool isLoading() const {return networkReply && !canBind();}
 
 signals:
 	//! Emitted when the texture is ready to be bind(), i.e. when downloaded, imageLoading and	glLoading is over
@@ -107,10 +107,7 @@ private:
 		GLint format;
 		GLint type;
 	};
-	//! Those static methods can be called by QtConcurrent::run
 	static GLData imageToGLData(const QImage &image);
-	static GLData loadFromPath(const QString &path);
-	static GLData loadFromData(const QByteArray& data);
 
 	//! Private constructor
 	StelTexture();
@@ -134,12 +131,10 @@ private:
 	//! Used to handle the connection for remote textures.
 	QNetworkReply *networkReply;
 
-	//! The loader object
-	QFuture<GLData>* loader;
-
-
 	//! The URL where to download the file
 	QString fullPath;
+	//! The temporay image used when we get data from the network
+	QImage image;
 
 	//! True when something when wrong in the loading process
 	bool errorOccured;

@@ -41,7 +41,7 @@
 
 // QOpenGLTexture has a bug on android, this is a temporary fix using a very simple
 // minimal implemetation of it.
-#ifdef Q_OS_ANDROID
+#if defined Q_OS_ANDROID || defined Q_OS_IOS
 #define QOpenGLTexture OpenGLTexture
 
 static QByteArray convertToGLFormat(const QImage& image)

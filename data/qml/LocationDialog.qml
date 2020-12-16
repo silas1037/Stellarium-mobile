@@ -34,8 +34,9 @@ StelDialog {
 		width: parent.width
 		StelListItem {
 			checkbox: true
-			text: qsTr("Use GPS")
+			text: qsTr("Use GPS") + (stellarium.gpsState === "Searching" ? qsTr(" (searching)") : "")
 			action: "actionGPS"
+			enabled: stellarium.gpsState !== "Unsupported"
 		}
 		StelListItem {
 			text: "Latitude"
@@ -62,7 +63,7 @@ StelDialog {
 				picker.type = "LON"
 				picker.value = stellarium.longitude
 				function onValueChanged() {
-					tellarium.setManualPosition(stellarium.latitude, picker.value)
+					stellarium.setManualPosition(stellarium.latitude, picker.value)
 				}
 				picker.valueChanged.connect(onValueChanged)
 			}
