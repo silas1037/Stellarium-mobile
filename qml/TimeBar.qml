@@ -21,6 +21,7 @@ import QtQuick 2.2
 
 Column {
     width: (48*rootStyle.scale)*4+rootStyle.margin
+	property double jd_second: 0.000011574074074074074074
 
 	Text {
         font.pixelSize: rootStyle.fontNormalSize
@@ -43,21 +44,25 @@ Column {
 		ImageButton {
 			source: "images/timeRewind.png"
 			action: "actionDecrease_Time_Speed"
+			opacity: stellarium.timeRate < -0.99 * jd_second ? 1.0 : 0.5
 		}
 
 		ImageButton {
 			source: "images/timeReal.png"
 			action: "actionSet_Real_Time_Speed"
+			opacity: Math.abs(stellarium.timeRate - jd_second) < 0.0000001 ? 1.0 : 0.5
 		}
 
 		ImageButton {
 			source: "images/timeForward.png"
 			action: "actionIncrease_Time_Speed"
+			opacity: stellarium.timeRate > 1.01 * jd_second ? 1.0 : 0.5
 		}
 
 		ImageButton {
 			source: "images/timeNow.png"
 			action: "actionReturn_To_Current_Time"
+			opacity: stellarium.timeNow ? 1.0 : 0.5
 		}
 	}
 }

@@ -58,6 +58,7 @@ Item {
 			left: parent.left
 			right: arrow.visible ? arrow.left : parent.right
 			margins: rootStyle.margin
+			leftMargin: rootStyle.margin + rootStyle.safeLeftMargin
 		}
 		text: root.text
 		font.pixelSize: rootStyle.fontNormalSize

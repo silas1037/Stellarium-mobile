@@ -34,7 +34,6 @@ StelDialog {
 		flickableDirection: Flickable.VerticalFlick
 
 		Text {
-			y: -20*rootStyle.scale // compensate the <h2> top margin
 			id: descriptionText
 			width: parent.width
 			text: stellarium.currentLandscapeHtmlDescription

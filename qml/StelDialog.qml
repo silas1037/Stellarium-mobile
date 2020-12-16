@@ -69,7 +69,7 @@ MouseArea {
 
 	Rectangle {
 		id: header
-		height: 50*stellarium.guiScaleFactor
+		height: 50*stellarium.guiScaleFactor + rootStyle.safeTopMargin
 		anchors {
 			left: parent.left
 			right: parent.right
@@ -81,6 +81,7 @@ MouseArea {
 		}
 		Text {
 			anchors.centerIn: parent
+			anchors.verticalCenterOffset: rootStyle.safeTopMargin / 2
 			text: root.title
 			color: "white"
 			font.pixelSize: rootStyle.fontLargeSize
@@ -90,6 +91,7 @@ MouseArea {
 				left: parent.left
 				leftMargin: rootStyle.margin
 				verticalCenter: parent.verticalCenter
+				verticalCenterOffset: rootStyle.safeTopMargin / 2
 			}
 			mirror: true
 			source: "images/navigation_next_item.png"

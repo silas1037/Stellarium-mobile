@@ -184,6 +184,10 @@ Item {
 		id: searchInput
 		visible: root.mode === "QUICKBAR"
 		onReturnPressed: root.mode = "DEFAULT"
+		anchors {
+			top: parent.top
+			topMargin: rootStyle.safeTopMargin
+		}
 	}
 
 	InfoPanel {
@@ -240,6 +244,7 @@ Item {
 		anchors {
 			horizontalCenter: parent.horizontalCenter
 			bottom: parent.bottom
+			bottomMargin: rootStyle.safeBottomMargin
 			margins: 5
 		}
 	}
@@ -344,7 +349,8 @@ Item {
 		Behavior on opacity { PropertyAnimation {} }
 		anchors {
 			bottom: parent.bottom
-            horizontalCenter: parent.horizontalCenter
+			horizontalCenter: parent.horizontalCenter
+			bottomMargin: rootStyle.safeBottomMargin
 		}
 		height: childrenRect.height
 
@@ -414,6 +420,14 @@ Item {
 		property int maxMenuHeight: root.height - 50 * stellarium.guiScaleFactor
 		property color color0: "#01162d"
 		property color color1: "#012d1b"
+
+		// Compute safe margins for iPhone X screen shape.
+		property bool isIPhoneX : stellarium.model == "iPhone" &&
+								  Math.min(root.width, root.height) === 375 &&
+								  Math.max(root.width, root.height) === 812
+		property int safeLeftMargin: isIPhoneX && (root.width > root.height) ? 28 : 0;
+		property int safeTopMargin: isIPhoneX && (root.width < root.height) ? 28 : 0;
+		property int safeBottomMargin: isIPhoneX ? 23 : 0;
 	}
 
 	// Create a color based on the style colors
@@ -425,5 +439,24 @@ Item {
 		if (pressed)
 			c = Qt.lighter(c, 1.5);
 		return c;
+	}
+
+	// NightMode shader effect.
+	StelAction {
+		id: nightMode
+		action: "actionNight_Mode"
+	}
+	layer.enabled: nightMode.checked
+	layer.effect: ShaderEffect {
+		visible: nightMode.checked
+		anchors.fill: parent
+		fragmentShader: "
+			uniform lowp sampler2D source; // this item
+			varying highp vec2 qt_TexCoord0;
+			void main() {
+				lowp vec3 color = texture2D(source, qt_TexCoord0).rgb;
+				lowp float luminance = max(max(color.r, color.g), color.b);
+				gl_FragColor = vec4(luminance, 0.0, 0.0, 1.0);
+			}"
 	}
 }

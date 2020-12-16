@@ -33,7 +33,7 @@ Item {
 			right: root.right
 			top: root.top
 		}
-		height: Math.max(nameAndInfo.height + 2*rootStyle.margin-2.*rootStyle.scale, 40*rootStyle.scale)
+		height: Math.max(nameAndInfo.height + 2*rootStyle.margin-2.*rootStyle.scale + rootStyle.safeTopMargin, 40*rootStyle.scale)
 		
 		MouseArea {
 			anchors.fill: parent
@@ -61,6 +61,7 @@ Item {
 		visible: !stellarium.tracking
 		anchors.right: nameAndInfoFrame.right
 		anchors.top: nameAndInfoFrame.top
+		anchors.topMargin: rootStyle.safeTopMargin
 		height: 30*rootStyle.scale
 		width: 30*rootStyle.scale
 	}
@@ -70,6 +71,7 @@ Item {
 		height: childrenRect.height
 		anchors {
 			left: nameAndInfoFrame.left
+			leftMargin: rootStyle.safeLeftMargin
 			top: nameAndInfoFrame.bottom
 		}
 
@@ -115,6 +117,8 @@ Item {
 			top: parent.top
 			left: parent.left
 			margins: rootStyle.margin
+			topMargin: rootStyle.margin + rootStyle.safeTopMargin
+			leftMargin: rootStyle.margin + rootStyle.safeLeftMargin
 		}
 		width: root.width
 		height: selectedObjectName.height+selectedObjectShortInfo.height+2 + (root.fullInfoVisible ? selectedObjectInfo.height : 0)

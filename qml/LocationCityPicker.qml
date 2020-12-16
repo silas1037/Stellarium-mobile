@@ -27,26 +27,66 @@ StelDialog {
 	property string country
 	property string city
 
+	Rectangle {
+		id: inputRect
+		color: 'transparent'
+		border.width: 1*rootStyle.scale
+		border.color: 'white'
+		anchors.margins: rootStyle.margin
+		width: root.width
+		height: 45 * rootStyle.scale
+		TextInput {
+			id: textInput
+			anchors.fill: parent
+			anchors.margins: rootStyle.margin
+			font.pixelSize: rootStyle.fontNormalSize
+			color: "#AAAAAA"
+			text: qsTr("Filter")
+			font.italic: true
+			verticalAlignment: Text.AlignVCenter
+			horizontalAlignment: Text.AlignHCenter
+			onActiveFocusChanged: {
+				if (activeFocus && text === qsTr("Filter"))
+				{
+					text = ""
+					textInput.font.italic = false
+					textInput.color = 'white'
+				} else {
+					textInput.font.italic = true
+					textInput.color = '#AAAAAA'
+				}
+			}
+		}
+	}
+
 	ListView {
 		id: countriesList
 		anchors.left: parent.left
-		width: root.country ? root.width / 2 : root.width
+		anchors.top: inputRect.bottom
+		width: root.country ? 0 : root.width
 		Behavior on width {
 			NumberAnimation { easing.type: Easing.InOutQuad }
 		}
-		height: root.height
+		height: root.height - inputRect.height
 		delegate: StelListItem {
 			withArrow: false
 			text: qsTr(modelData)
 			selected: root.country === modelData
-			onClicked: root.country = modelData
+			onClicked: {
+				root.country = modelData;
+				textInput.focus = false;
+				textInput.text = qsTr("Filter");
+			}
 		}
-		model: stellarium.getCountryNames()
+		model: {
+			return filterValues(stellarium.getCountryNames());
+		}
 		clip: true
 	}
 	ListView {
 		anchors.left: countriesList.right
 		anchors.right: parent.right
+		anchors.top: inputRect.bottom
 		height: root.height
 		delegate: StelListItem {
 			withArrow: false
@@ -54,8 +94,22 @@ StelDialog {
 			selected: root.city === modelData
 			onClicked: root.city = modelData
 		}
-		model: stellarium.getCityNames(root.country)
+		model: {
+			return filterValues(stellarium.getCityNames(root.country));
+		}
 		clip: true
+	}
+
+	// Filter a list of strings according to the current filter input.
+	function filterValues(values) {
+		var ret = [];
+		var filter = textInput.text.toLowerCase()
+		if (filter === qsTr("filter")) filter = ""
+		for (var i = 0; i < values.length; i++) {
+			if (values[i].toLowerCase().startsWith(filter))
+				ret.push(values[i]);
+		}
+		return ret;
 	}
 
 	onCityChanged: {

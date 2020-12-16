@@ -4,6 +4,12 @@
 
 trap "echo Exited!; exit;" SIGINT SIGTERM
 
+# Check that the commands we need are available.
+lconvert --help    >/dev/null 2>&1 || { echo "Need lconvert." >&2; exit 1; }
+pngquant --version >/dev/null 2>&1 || { echo "Need pngquant." >&2; exit 1; }
+rsync    --version >/dev/null 2>&1 || { echo "Need rsync."    >&2; exit 1; }
+
+rm -rf mobileData
 mkdir -p mobileData
 
 # I couldn't find a proper imagemagik command to do as good as PIL/phatch.
@@ -52,15 +58,15 @@ for land in $LANDSCAPES; do
 done
 
 # Copy some of the sky cultures.
-CULTURES="aztec  chinese  egyptian  inuit  korean  lakota  maori  navajo
-          norse  polynesian  sami  tupi  western"
+CULTURES="arabic_moon_stations  aztec  chinese  egyptian  inuit  korean
+          lakota  maori  navajo norse  polynesian  sami  tupi  western"
 for culture in $CULTURES; do
     rsync -avz --exclude "*~" skycultures/$culture mobileData/skycultures
     resize-all 2 mobileData/skycultures/$culture/*.png
 done
 
 # Create translation files
-LANGS="en fr de es it zh_CN zh_TW ru"
+LANGS="en fr de es it zh_CN zh_TW ru ar"
 mkdir -p mobileData/translations/stellarium
 mkdir -p mobileData/translations/stellarium-skycultures
 for lang in $LANGS; do

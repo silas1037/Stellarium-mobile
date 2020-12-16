@@ -1,7 +1,7 @@
 
 TARGET = stellarium
 VERSION = 0.12.3
-MOBILE_VERSION = 1.25
+MOBILE_VERSION = 1.29.6
 INCLUDEPATH += \
 	. src/ src/core src/core/modules src/core/external \
 	src/core/external/glues_stel/source src/core/external/kfilter \
@@ -20,6 +20,8 @@ CONFIG += qt thread
 LIBS += -lz
 
 QMAKE_CFLAGS += -Wno-unused-parameter
+QMAKE_CXXFLAGS += -Wno-unused-parameter
+
 
 CONFIG(debug, debug|release) {
 
@@ -67,14 +69,11 @@ ios {
 	stars_dir.files = $$PWD/mobileData/stars
 	textures_dir.files = $$PWD/mobileData/textures
 	translations_dir.files = $$PWD/mobileData/translations
-	QMAKE_BUNDLE_DATA += data_dir landscapes_dir nebulae_dir skycultures_dir stars_dir textures_dir translations_dir
+	app_launch_images.files = $$PWD/ios/Launch.xib
+	QMAKE_BUNDLE_DATA += data_dir landscapes_dir nebulae_dir skycultures_dir stars_dir textures_dir translations_dir app_launch_images
 	QMAKE_INFO_PLIST = ios/Info.plist
-	QTPLUGIN += qtsensors_ios
 	OBJECTIVE_SOURCES += src/core/modules/SensorsMgr.mm
-	ios_icon.files = $$files($$PWD/ios/AppIcon*.png)
-	ios_launch_images.files = $$PWD/ios/Launch.xib $$files($$PWD/ios/LaunchImage*.png)
-	ios_itunes_icon.files = $$files($$PWD/ios/iTunesArtwork*)
-	QMAKE_BUNDLE_DATA += ios_icon ios_launch_images ios_itunes_icon
+	QMAKE_ASSET_CATALOGS += ios/Images.xcassets
 }
 
 HEADERS += \
@@ -103,9 +102,6 @@ DEFINES += ENABLE_NLS
 DEFINES += PACKAGE_VERSION_NOSTR=$${VERSION}
 DEFINES += MOBILE_GUI_VERSION_NOSTR=$${MOBILE_VERSION}
 DEFINES += INSTALL_DATADIR_NOSTR=
-
-QMAKE_CFLAGS += -include src/config.h
-QMAKE_CXXFLAGS += -include src/config.h
 
 contains(QT, quick) {
 	DEFINES += USE_QUICKVIEW
@@ -358,3 +354,6 @@ OTHER_FILES += \
 	data/qml/AdvancedDialog.qml \
 	data/qml/AnglePicker.qml \
 	data/qml/ValuePicker.qml \
+
+DISTFILES += \
+    mobile-guide/guide.md

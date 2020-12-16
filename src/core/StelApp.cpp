@@ -362,11 +362,6 @@ void StelApp::init(QSettings* conf)
 	networkAccessManager->setCache(cache);
 	connect(networkAccessManager, SIGNAL(finished(QNetworkReply*)), this, SLOT(reportFileDownloadFinished(QNetworkReply*)));
 
-#ifdef Q_OS_ANDROID
-	// Ugly hack for allowing to get here the buggy 0.9 second blocking initial network request with Qt5 on android
-	networkAccessManager->get(QNetworkRequest(QUrl("http://noctua-software.com/invalid")));
-#endif
-
 	// Stel Object Data Base manager
 	stelObjectMgr = new StelObjectMgr();
 	stelObjectMgr->init();
