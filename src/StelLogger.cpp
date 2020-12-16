@@ -33,7 +33,7 @@ void StelLogger::init(const QString& logFilePath)
 {
 	logFile.setFileName(logFilePath);
 
-#if !(defined(Q_OS_ANDROID) || defined(Q_OS_IOS))
+#if !(defined(Q_OS_ANDROID) || defined(Q_OS_IOS) || defined(Q_OS_WINRT))
 	if (logFile.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text | QIODevice::Unbuffered))
 		qInstallMessageHandler(StelLogger::debugLogHandler);
 #endif
@@ -221,7 +221,7 @@ void StelLogger::init(const QString& logFilePath)
 #endif
 
 // Aargh Windows API
-#elif defined Q_OS_WIN
+#elif defined Q_OS_WIN && !defined Q_OS_WINRT
 	// Hopefully doesn't throw a linker error on earlier systems. Not like
 	// I'm gonna test it or anything.
 	if (QSysInfo::WindowsVersion >= QSysInfo::WV_2000)

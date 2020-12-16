@@ -20,6 +20,7 @@
 #ifndef _STELSKYDRAWER_HPP_
 #define _STELSKYDRAWER_HPP_
 
+#include "config.h"
 #include "StelTextureTypes.hpp"
 #include "StelProjectorType.hpp"
 #include "VecMath.hpp"
@@ -342,7 +343,7 @@ private:
 	StarVertex* vertexArray;
 
 	//! Buffer for storing the texture coordinate array data.
-	unsigned char* textureCoordArray;
+	GLfloat* textureCoordArray;
 	
 	class QOpenGLShaderProgram* starShaderProgram;
 	struct StarShaderVars {

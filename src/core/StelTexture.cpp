@@ -227,6 +227,14 @@ QByteArray StelTexture::convertToGLFormat(const QImage& image, GLint *format, GL
 	return ret;
 }
 
+// Bug fix to disable mipmap on Tegra 3 OpenGL renderer (nexus 7)
+// XXX: need to retest with later versions of Qt to see if it works better then.
+// The fix is needed at least with Qt 5.4.
+const bool isTegra3()
+{
+	return strstr((const char *)glGetString(GL_RENDERER), "Tegra 3");
+}
+
 bool StelTexture::glLoad(const GLData& data)
 {
 	if (data.data.isEmpty())
@@ -246,7 +254,7 @@ bool StelTexture::glLoad(const GLData& data)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, loadParams.wrapMode);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, loadParams.wrapMode);
 	// Kindle fire 1st gen does not support mipmap on non square textures!
-	if (loadParams.generateMipmaps && (width == height))
+	if (loadParams.generateMipmaps && (width == height) && !isTegra3())
 	{
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 		glGenerateMipmap(GL_TEXTURE_2D);

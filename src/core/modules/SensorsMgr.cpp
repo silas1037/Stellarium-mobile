@@ -33,14 +33,21 @@
 #include <QDebug>
 #include <QAccelerometer>
 #include <QMagnetometer>
+#include <QRotationSensor>
+#include <QQuaternion>
+#include <QVector3D>
 
 SensorsMgr::SensorsMgr() :
     enabled(false),
+#ifndef Q_OS_WINPHONE
     accelerometerSensor(NULL),
     magnetometerSensor(NULL),
     sensorX(0), sensorY(0), sensorZ(0),
     magnetX(0), magnetY(0), magnetZ(0),
     firstMeasure(true)
+#else
+	rotationSensor(NULL)
+#endif
 {
 	setObjectName("SensorsMgr");
 }
@@ -53,10 +60,16 @@ SensorsMgr::~SensorsMgr()
 void SensorsMgr::init()
 {
 	addAction("actionSensorsControl", N_("Movement and Selection"), N_("Sensors"), "enabled");
+#ifndef Q_OS_WINPHONE
 	accelerometerSensor = new QAccelerometer(this);
 	// Crash with Qt 5.3.
 	// accelerometerSensor->setAccelerationMode(QAccelerometer::Gravity);
 	magnetometerSensor = new QMagnetometer(this);
+#else
+	rotationSensor = new QRotationSensor(this);
+	// XXX: does this value work with all the Windows phone?
+	rotationSensor->setDataRate(62);
+#endif
 }
 
 void SensorsMgr::setEnabled(bool value)
@@ -64,9 +77,13 @@ void SensorsMgr::setEnabled(bool value)
 	if (value == enabled)
 		return;
 	enabled = value;
+#ifndef Q_OS_WINPHONE
 	accelerometerSensor->setActive(enabled);
 	magnetometerSensor->setActive(enabled);
 	firstMeasure = true;
+#else
+	rotationSensor->setActive(enabled);
+#endif
 	if (!enabled)
 	{
 		Vec3d up(0,0,1);
@@ -124,6 +141,7 @@ void SensorsMgr::applyOrientation(float* x, float *y, float* z)
 }
 #endif
 
+#ifndef Q_OS_WINPHONE
 void SensorsMgr::update(double deltaTime)
 {
 	Q_UNUSED(deltaTime);
@@ -185,5 +203,32 @@ void SensorsMgr::update(double deltaTime)
 	StelUtils::spheToRect(az, pitch, viewDirection);
 	mmgr->setViewDirectionJ2000(StelApp::getInstance().getCore()->altAzToJ2000(viewDirection));
 }
+#else
+
+void SensorsMgr::update(double deltaTime)
+{
+	Q_UNUSED(deltaTime);
+	if (!enabled)
+		return;
+
+	QRotationReading *rotation = rotationSensor->reading();
+	if (!rotation) return;
+
+	float x = rotation->x();
+	float y = rotation->y();
+	float z = rotation->z();
+	QQuaternion quat;
+	quat *= QQuaternion::fromAxisAndAngle(0, 0, 1, 90);
+	quat *= QQuaternion::fromAxisAndAngle(0, 0, 1, z);
+	quat *= QQuaternion::fromAxisAndAngle(1, 0, 0, x);
+	quat *= QQuaternion::fromAxisAndAngle(0, 1, 0, y);
+	QVector3D vec = quat.rotatedVector(QVector3D(0, 0, -1));
+
+	Vec3d viewDirection(vec.x(), vec.y(), vec.z());
+	StelMovementMgr* mmgr = GETSTELMODULE(StelMovementMgr);
+	mmgr->setViewDirectionJ2000(StelApp::getInstance().getCore()->altAzToJ2000(viewDirection));
+}
+
+#endif
 
 #endif // Q_OS_IOS

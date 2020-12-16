@@ -51,7 +51,7 @@ private:
 class StelQuickView : public QQuickView
 {
 	Q_OBJECT
-	Q_PROPERTY(bool nightMode READ getNightMode WRITE setNightMode)
+	Q_PROPERTY(bool nightMode READ getNightMode WRITE setNightMode NOTIFY nightModeChanged)
 public:
 	StelQuickView();
 	void init(class QSettings* conf);
@@ -59,9 +59,10 @@ public:
 	//! Get the StelMainView singleton instance.
 	static StelQuickView& getInstance() {Q_ASSERT(singleton); return *singleton;}
 	bool getNightMode() const {return nightMode;}
-	void setNightMode(bool value) {nightMode = value;}
+	void setNightMode(bool value) {nightMode = value; emit nightModeChanged(value);}
 signals:
 	void initialized();
+	void nightModeChanged(bool);
 protected slots:
 	void handleResize();
 	void paint();

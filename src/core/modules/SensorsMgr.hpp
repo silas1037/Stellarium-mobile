@@ -35,10 +35,16 @@ signals:
 private:
 	void applyOrientation(float* x, float *y, float* z);
 	bool enabled;
+	// XXX: Maybe use Rotation Sensor for all platforms, not
+	// just on Windows phone.
+#ifndef Q_OS_WINPHONE
 	class QAccelerometer* accelerometerSensor;
 	class QMagnetometer* magnetometerSensor;
 	qreal sensorX, sensorY, sensorZ;
 	qreal magnetX, magnetY, magnetZ;
 	qreal sensorAzimuth;
 	bool firstMeasure;
+#else
+	class QRotationSensor *rotationSensor;
+#endif
 };

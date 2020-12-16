@@ -250,6 +250,7 @@ StelApp::~StelApp()
 	singleton = NULL;
 }
 
+#ifndef Q_OS_WINRT
 void StelApp::setupHttpProxy()
 {
 	QString proxyHost = confSettings->value("proxy/host_name").toString();
@@ -316,6 +317,9 @@ void StelApp::setupHttpProxy()
 		QNetworkProxy::setApplicationProxy(proxy);
 	}
 }
+#else
+void StelApp::setupHttpProxy() {}
+#endif
 
 #ifndef DISABLE_SCRIPTING
 void StelApp::initScriptMgr(QSettings *conf)
@@ -457,7 +461,8 @@ void StelApp::init(QSettings* conf)
 
 	// Initialisation of the color scheme
 	emit colorSchemeChanged("color");
-	setVisionModeNight(confSettings->value("viewing/flag_night").toBool());
+	// In the mobile version this is handled by the QuickView.
+	// setVisionModeNight(confSettings->value("viewing/flag_night").toBool());
 
 	// Initialisation of the render of solar shadows
 	//setRenderSolarShadows(confSettings->value("viewing/flag_render_solar_shadows", true).toBool());

@@ -17,8 +17,17 @@
  * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
  */
 
-// This file is automatically added before any other included files
-// by the -include compilation flags.
+// This file should be included before any other included files.
+
+#ifndef _CONFIG_H_
+#define _CONFIG_H_
+
+#if defined WIN32
+	#define __func__ __FUNCTION__
+	static char *getenv(const char *n) {return 0;}
+	static void tzset() {}
+	#define putenv(x)
+#endif
 
 // Create strings macros from the "NOSTR" versions.
 #define _STRINGIFY(x) #x
@@ -43,3 +52,5 @@
 
 #define GL_GLEXT_PROTOTYPES
 #include <qopengl.h>
+
+#endif

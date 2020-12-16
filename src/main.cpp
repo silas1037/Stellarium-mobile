@@ -18,6 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
  */
 
+#include "config.h"
 #include "StelMainView.hpp"
 #include "StelTranslator.hpp"
 #include "StelLogger.hpp"
@@ -49,7 +50,7 @@
 #include <QTranslator>
 #include <clocale>
 
-#ifdef Q_OS_WIN
+#if defined Q_OS_WIN && !defined Q_OS_WINRT
 #include <windows.h>
 #ifdef _MSC_BUILD
 	#include <MMSystem.h>
@@ -100,7 +101,7 @@ void copyDefaultConfigFile(const QString& newPath)
 // Main stellarium procedure
 int main(int argc, char **argv)
 {
-#ifdef Q_OS_WIN
+#if defined Q_OS_WIN && !defined Q_OS_WINRT
 	// Fix for the speeding system clock bug on systems that use ACPI
 	// See http://support.microsoft.com/kb/821893
 	UINT timerGrain = 1;
@@ -281,7 +282,7 @@ int main(int argc, char **argv)
 
 	// Set the default application font and font size.
 	// Note that style sheet will possibly override this setting.
-#ifdef Q_OS_WIN
+#if defined Q_OS_WIN && !defined Q_OS_WINRT
 	QFont tmpFont(baseFont);
 	tmpFont.setStyleHint(QFont::AnyStyle, QFont::OpenGLCompatible);
 #else
@@ -321,7 +322,7 @@ int main(int argc, char **argv)
 	delete confSettings;
 	StelLogger::deinit();
 
-#ifdef Q_OS_WIN
+#if defined Q_OS_WIN && !defined Q_OS_WINRT
 	if(timerGrain)
 		timeEndPeriod(timerGrain);
 #endif //Q_OS_WIN

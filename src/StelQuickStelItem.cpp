@@ -166,7 +166,7 @@ QString StelQuickStelItem::getSelectedObjectInfo() const
 {
 	StelObject::InfoStringGroup infoTextFilters = StelObject::InfoStringGroup(
 				StelObject::PlainText | StelObject::Size | StelObject::Extra | StelObject::AltAzi | StelObject::RaDecOfDate |
-				StelObject::CatalogNumber);
+				StelObject::CatalogNumber | StelObject::HourAngle);
 	const QList<StelObjectP>& selected = GETSTELMODULE(StelObjectMgr)->getSelectedObject();
 	if (selected.empty()) return "";
 	StelCore* core = StelApp::getInstance().getCore();
@@ -503,7 +503,7 @@ bool StelQuickStelItem::isDay() const
 
 bool StelQuickStelItem::isDesktop() const
 {
-#if defined Q_OS_ANDROID || defined Q_OS_IOS
+#if defined Q_OS_ANDROID || defined Q_OS_IOS || defined Q_OS_WINPHONE
 	return false;
 #else
 	return true;
@@ -581,6 +581,7 @@ void StelQuickStelItem::resetSettings()
 	    {"actionShow_Planets_Labels", "astro/flag_planets_labels"},
 	    {"actionShow_Planets_Hints", "astro/flag_planets_hints"},
 	    {"actionShow_Ecliptic_Line", "viewing/flag_ecliptic_line"},
+	    {"actionNight_Mode", "viewing/flag_ecliptic_line"},
 	};
 	for (unsigned int i = 0; i < sizeof(actions) / sizeof(actions[0]); i++)
 	{

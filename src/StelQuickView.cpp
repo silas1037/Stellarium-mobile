@@ -17,6 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
  */
 
+#include "config.h"
 #include "StelQuickView.hpp"
 #include "StelApp.hpp"
 #include "StelPainter.hpp"
@@ -260,7 +261,7 @@ void StelQuickView::createBlitShader()
 
 float StelQuickView::getScreenDensity() const
 {
-#if defined(Q_OS_IOS)
+#if defined(Q_OS_IOS) || defined(Q_OS_WINRT)
 	return screen()->physicalDotsPerInch()/160.f;
 #elif defined(Q_OS_ANDROID)
 	return StelAndroid::getScreenDensity()/160.f;
@@ -271,13 +272,14 @@ float StelQuickView::getScreenDensity() const
 
 void StelQuickView::synchronize()
 {
+	const int splashTime = 2;
 	static int initState = 0;
-	if (initState == 0) // Give Qt the time to render the splash screen.
+	if (initState < splashTime) // Give Qt the time to render the splash screen.
 	{
 		initState++;
 		return;
 	}
-	if (initState == 1)
+	if (initState == splashTime)
 	{
 		stelApp = new StelApp();
 		StelApp::initStatic();
@@ -290,6 +292,7 @@ void StelQuickView::synchronize()
 		StelApp::getInstance().getStelObjectMgr().setDistanceWeight(0.2f);
 		stelApp->glWindowHasBeenResized(0, 0, width(), height());
 		setFlags(Qt::Window);
+		setNightMode(globalConf->value("viewing/flag_night", false).toBool());
 		initState++;
 		emit initialized();
 	}

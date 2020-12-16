@@ -107,5 +107,6 @@ Grid {
 	ImageButton {
 		source: "images/nightView.png"
 		action: "actionNight_Mode"
+		setting: "viewing/flag_night"
 	}
 }
