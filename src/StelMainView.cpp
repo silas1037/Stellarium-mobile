@@ -39,7 +39,6 @@
 #include <QFileInfo>
 #include <QIcon>
 #include <QMoveEvent>
-#include <QOpenGLFunctions>
 #include <QPluginLoader>
 #include <QScreen>
 #include <QSettings>
@@ -56,7 +55,7 @@
 StelMainView* StelMainView::singleton = NULL;
 
 //! Render Stellarium sky. 
-class StelSkyItem : public QDeclarativeItem, protected QOpenGLFunctions
+class StelSkyItem : public QDeclarativeItem
 {
 public:
 	StelSkyItem(QDeclarativeItem* parent = NULL);

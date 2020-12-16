@@ -21,6 +21,17 @@
 #include <QDateTime>
 #include <QQuickItem>
 
+// Special object that is just there so we can invoke some methods in the main thread.
+class MainThreadProxy : public QObject
+{
+	Q_OBJECT
+public:
+	Q_INVOKABLE void setCurrentLandscapeID(const QString& value);
+	Q_INVOKABLE void setCurrentLandscapeName(const QString& value);
+	Q_INVOKABLE void setLocation(const QString locationId);
+	Q_INVOKABLE void setManualPosition(double latitude, double longitude);
+};
+
 class StelQuickStelItem : public QQuickItem
 {
 	Q_OBJECT
@@ -50,6 +61,8 @@ class StelQuickStelItem : public QQuickItem
 	Q_PROPERTY(bool autoGotoNight READ getAutoGotoNight WRITE setAutoGotoNight)
 	Q_PROPERTY(bool desktop READ isDesktop CONSTANT)
 	Q_PROPERTY(QString gpsState READ getGpsState NOTIFY gpsStateChanged)
+	Q_PROPERTY(int lightPollution READ getLightPollution WRITE setLightPollution NOTIFY lightPollutionChanged)
+	Q_PROPERTY(int milkyWayBrightness READ getMilkyWayBrightness WRITE setMilkyWayBrightness NOTIFY milkyWayBrightnessChanged)
 public:
 	StelQuickStelItem();
 	QString getSelectedObjectName() const;
@@ -98,6 +111,11 @@ public:
 	void setAutoGotoNight(bool value) {autoGotoNight = value;}
 	bool isDesktop() const;
 	QString getGpsState() const;
+	int getLightPollution() const;
+	void setLightPollution(int value);
+	int getMilkyWayBrightness() const;
+	void setMilkyWayBrightness(int value);
+	Q_INVOKABLE void resetSettings();
 
 protected:
 	bool eventFilter(QObject *, QEvent *) Q_DECL_OVERRIDE;
@@ -118,6 +136,8 @@ signals:
 	void positionChanged();
 	void guiScaleFactorChanged();
 	void gpsStateChanged();
+	void lightPollutionChanged();
+	void milkyWayBrightnessChanged();
 
 private slots:
 	void update();
@@ -126,4 +146,5 @@ private:
 	class QTimer* timer;
 	bool forwardClicks;
 	bool autoGotoNight;
+	MainThreadProxy* mainThreadProxy;
 };

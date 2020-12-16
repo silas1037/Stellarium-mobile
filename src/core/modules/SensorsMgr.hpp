@@ -39,5 +39,6 @@ private:
 	class QMagnetometer* magnetometerSensor;
 	qreal sensorX, sensorY, sensorZ;
 	qreal magnetX, magnetY, magnetZ;
+	qreal sensorAzimuth;
 	bool firstMeasure;
 };

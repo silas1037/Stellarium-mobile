@@ -28,7 +28,6 @@
 #include <QStringList>
 
 class QFileInfo;
-class AndroidFileInfo;
 
 //! Provides utilities for locating and handling files.
 //! StelFileMgr provides functions for locating files.  It maintains a list of
@@ -205,11 +204,7 @@ private:
 	//! @param flags a set of StelFileMgr::Flags to test against path
 	//! @return true if path passes all flag tests, else false
 	//! @exception misc
-#ifndef Q_OS_ANDROID
 	static bool fileFlagsCheck(const QFileInfo& thePath, const Flags& flags=(Flags)0);
-#else
-	static bool fileFlagsCheck(const AndroidFileInfo& thePath, const Flags& flags=(Flags)0);
-#endif
 
 	static QStringList fileLocations;
 

@@ -67,7 +67,7 @@ static QByteArray convertToGLFormat(const QImage& image)
 	return ret;
 }
 
-class OpenGLTexture : protected QOpenGLFunctions
+class OpenGLTexture
 {
 public:
 	OpenGLTexture(const QImage& img);
@@ -84,7 +84,6 @@ private:
 
 OpenGLTexture::OpenGLTexture(const QImage& img) : id(0)
 {
-	initializeOpenGLFunctions();
 	m_width = img.width();
 	m_height = img.height();
 	QByteArray data = convertToGLFormat(img);
@@ -130,7 +129,6 @@ StelPainter::TexturesColorShaderVars StelPainter::texturesColorShaderVars;
 
 StelPainter::GLState::GLState()
 {
-	initializeOpenGLFunctions();
 	blend = glIsEnabled(GL_BLEND);
 	glGetIntegerv(GL_BLEND_SRC_RGB, &blendSrcRGB);
 	glGetIntegerv(GL_BLEND_DST_RGB, &blendDstRGB);

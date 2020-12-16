@@ -18,6 +18,7 @@
  */
 
 #include "StelModule.hpp"
+#include <QGeoPositionInfoSource>
 
 class GPSMgr : public StelModule
 {
@@ -31,14 +32,18 @@ public:
 	virtual void init() Q_DECL_OVERRIDE;
 	virtual void update(double deltaTime) Q_DECL_OVERRIDE {Q_UNUSED(deltaTime)}
 	bool isEnabled() const {return state == Searching || state == Found;}
-	void setEnabled(bool value);
-	Q_INVOKABLE void onFix(double latitude, double longitude, double altitude, double accuracy);
+	Q_INVOKABLE void setEnabled(bool value);
 	State getState() const {return state;}
+	static GPSMgr *singleton;
 signals:
 	void stateChanged(GPSMgr::State value);
 	void enabledChanged(bool value);
 private:
 	State state;
+	QGeoPositionInfoSource* source;
+private slots:
+	void positionUpdated(const QGeoPositionInfo &info);
+	void onError(QGeoPositionInfoSource::Error positioningError);
 };
 
 Q_DECLARE_METATYPE(GPSMgr::State)

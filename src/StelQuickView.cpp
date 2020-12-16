@@ -38,7 +38,9 @@
 #include <QDebug>
 #include <QGuiApplication>
 #include <QCoreApplication>
+#include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
+#include <QOpenGLFunctions>
 #include <QOpenGLShader>
 #include <QScreen>
 #include <QTimer>
@@ -118,7 +120,12 @@ StelQuickView::StelQuickView() : stelApp(NULL), nightMode(false), quitRequested(
 	connect(this, SIGNAL(afterRendering()), this, SLOT(afterRendering()), Qt::DirectConnection);
 	connect(this, SIGNAL(beforeSynchronizing()), this, SLOT(synchronize()), Qt::DirectConnection);
 	connect(this, SIGNAL(initialized()), this, SLOT(showGui()));
-    connect((QObject*)engine(), SIGNAL(quit()), this, SLOT(requestQuit()));
+	connect((QObject*)engine(), SIGNAL(quit()), this, SLOT(requestQuit()));
+
+	// We set the orientation mask here, otherwise we miss the initial orientation.
+	QScreen* screen = qApp->primaryScreen();
+	screen->setOrientationUpdateMask(Qt::PortraitOrientation | Qt::LandscapeOrientation |
+									 Qt::InvertedPortraitOrientation | Qt::InvertedLandscapeOrientation);
 }
 
 void StelQuickView::init(QSettings* conf)
@@ -130,7 +137,8 @@ void StelQuickView::init(QSettings* conf)
 	qmlRegisterType<QmlGuiActionItem>("Stellarium", 1, 0, "StelAction");
 	
 #if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
-	setFlags(Qt::FramelessWindowHint | Qt::SplashScreen);
+	// Removed because it breaks the search on my Huawei phone.
+	// setFlags(Qt::FramelessWindowHint | Qt::SplashScreen);
 	showFullScreen();
 #else
 	int width = conf->value("video/screen_w", 480).toInt();
@@ -281,6 +289,7 @@ void StelQuickView::synchronize()
 		StelApp::getInstance().getStelObjectMgr().setObjectSearchRadius(25.f*stelApp->getGlobalScalingRatio());
 		StelApp::getInstance().getStelObjectMgr().setDistanceWeight(0.2f);
 		stelApp->glWindowHasBeenResized(0, 0, width(), height());
+		setFlags(Qt::Window);
 		initState++;
 		emit initialized();
 	}
@@ -300,11 +309,17 @@ void StelQuickView::showGui()
 #endif
 }
 
+QSize StelQuickView::surfaceSize() const
+{
+	float ratio = devicePixelRatio();
+	return QSize(width() * ratio, height() * ratio);
+}
+
 QOpenGLFramebufferObject* StelQuickView::createFbo()
 {
 	QOpenGLFunctions funcs(QOpenGLContext::currentContext());
 	bool npot = funcs.hasOpenGLFeature(QOpenGLFunctions::NPOTTextures);
-	QSize fboSize = npot ? size() : QSize(nextPowerOf2(size().width()), nextPowerOf2(size().height()));
+	QSize fboSize = npot ? size() : QSize(nextPowerOf2(surfaceSize().width()), nextPowerOf2(surfaceSize().height()));
 	return new QOpenGLFramebufferObject(fboSize, QOpenGLFramebufferObject::CombinedDepthStencil);
 }
 
@@ -323,7 +338,7 @@ void StelQuickView::paint()
 	{
 		if (!nightViewShader.prog) createNightViewShader();
 		finalFbo.reset(createFbo());
-		setRenderTarget(finalFbo.data()->handle(), size());
+		setRenderTarget(finalFbo.data()->handle(), surfaceSize());
 	}
 	if (finalFbo && !nightMode)
 	{
@@ -341,12 +356,12 @@ void StelQuickView::paint()
 
 void StelQuickView::blit(QOpenGLFramebufferObject* fbo, Shader* shader)
 {
-	glViewport(0, 0, width(), height());
+	glViewport(0, 0, surfaceSize().width(), surfaceSize().height());
 	glDisable(GL_BLEND);
 	glDisable(GL_DEPTH_TEST);
 	float texSize[2] = {
-	    (float)size().width() / fbo->size().width(),
-	    (float)size().height() / fbo->size().height()
+	    (float)surfaceSize().width() / fbo->size().width(),
+	    (float)surfaceSize().height() / fbo->size().height()
 	};
 	const GLfloat vertices[][4] = {
 	    {-1, -1, 0, 0},

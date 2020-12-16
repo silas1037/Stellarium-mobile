@@ -22,59 +22,70 @@
 #include "StelApp.hpp"
 #include "StelCore.hpp"
 #include "StelModuleMgr.hpp"
+#include "StelQuickView.hpp"
 #include <QDebug>
+#include <QSettings>
+#include <QThread>
+#include <QDateTime>
 
-#ifdef Q_OS_ANDROID
-#  include "StelAndroid.hpp"
-#  define BACKEND StelAndroid
-#elif defined Q_OS_IOS
-#  include "StelIOS.hpp"
-#  define BACKEND StelIOS
-#endif
+GPSMgr* GPSMgr::singleton = NULL;
 
 GPSMgr::GPSMgr() :
-	state(GPSMgr::Disabled)
+	state(GPSMgr::Disabled),
+	source(NULL)
 {
+	singleton = this;
 	setObjectName("GPSMgr");
-#ifdef Q_OS_ANDROID
-	if (!StelAndroid::GPSSupported())
-		state = Unsupported;
+	// On iOS we need to create the position source in the main thread.
+#ifdef Q_OS_IOS
+	moveToThread(StelQuickView::getInstance().thread());
 #endif
 }
 
 GPSMgr::~GPSMgr()
 {
-#ifdef BACKEND
-	BACKEND::setGPSCallback(NULL);
-#endif
 }
 
 void GPSMgr::init()
 {
 	qRegisterMetaType<GPSMgr::State>("GPSMgr::State");
 	addAction("actionGPS", N_("Movement and Selection"), N_("GPS"), "enabled");
-	if (StelApp::getInstance().getCore()->getCurrentLocation().name == "GPS")
+	
+	// We start the GPS if the configured location is GPS, or if there is no configured
+	// location and the GPS is available.
+	QSettings* conf = StelApp::getInstance().getSettings();
+	bool enable = (StelApp::getInstance().getCore()->getCurrentLocation().name == "GPS") ||
+	        (conf->value("init_location/location").isNull() && state != Unsupported);
+	if (enable)
 	{
 		setEnabled(true);
 	}
 }
 
-static void onLocationChanged(double latitude, double longitude, double altitude, double accuracy);
-
-static void setGPSStatus(bool value)
+void GPSMgr::positionUpdated(const QGeoPositionInfo &info)
 {
-#ifdef BACKEND
-	BACKEND::setGPSCallback(value ? &onLocationChanged : NULL);
-#endif
+	StelLocation loc;
+	loc.planetName = "Earth";
+	loc.latitude = info.coordinate().latitude();
+	loc.longitude = info.coordinate().longitude();
+	loc.altitude = info.coordinate().altitude();
+	loc.name = "GPS";
+	StelApp::getInstance().getCore()->moveObserverTo(loc, 0.);
+	StelApp::getInstance().getCore()->setDefaultLocationID(loc.getID());
+	// Stop GPS when accuracy is < 500 m.
+	if (info.timestamp().isValid() &&
+			info.timestamp().secsTo(QDateTime::currentDateTime()) < 60 * 60 && // Less than one hour ago.
+			info.attribute(QGeoPositionInfo::HorizontalAccuracy) < 500)
+	{
+		source->stopUpdates();
+		state = Found;
+		emit stateChanged(state);
+	}
 }
 
-static void onLocationChanged(double latitude, double longitude, double altitude, double accuracy)
+void GPSMgr::onError(QGeoPositionInfoSource::Error positioningError)
 {
-	QMetaObject::invokeMethod(GETSTELMODULE(GPSMgr), "onFix", Qt::AutoConnection,
-	                          Q_ARG(double, latitude),
-	                          Q_ARG(double, longitude),
-	                          Q_ARG(double, altitude),
-	                          Q_ARG(double, accuracy));
+	qDebug() << "GPS Error" << positioningError;
 }
 
 void GPSMgr::setEnabled(bool value)
@@ -83,26 +94,37 @@ void GPSMgr::setEnabled(bool value)
 		return;
 	if (isEnabled() == value)
 		return;
+#ifdef Q_OS_IOS
+	// We can only call this from the main thread.  Otherwise it does not work on iOS.
+	if (this->thread() != QThread::currentThread())
+	{
+		QMetaObject::invokeMethod(this, "setEnabled", Qt::AutoConnection, Q_ARG(bool, value));
+		return;
+	}
+#endif
 	state = value ? Searching : Disabled;
-	setGPSStatus(value);
+
+	if (value && !source)
+	{
+		source = QGeoPositionInfoSource::createDefaultSource(this);
+		if (source)
+		{
+			connect(source, SIGNAL(positionUpdated(QGeoPositionInfo)),
+					this, SLOT(positionUpdated(QGeoPositionInfo)));
+			connect(source, SIGNAL(error(QGeoPositionInfoSource::Error)),
+					this, SLOT(onError(QGeoPositionInfoSource::Error)));
+		}
+		else
+		{
+			qDebug() << "GPS: cannot create source";
+			state = Unsupported;
+			return;
+		}
+	}
+	
+	value ? source->startUpdates() : source->stopUpdates();
 	emit stateChanged(state);
 	emit enabledChanged(value);
-}
-
-void GPSMgr::onFix(double latitude, double longitude, double altitude, double accuracy)
-{
-	StelLocation loc;
-	loc.planetName = "Earth";
-	loc.latitude = latitude;
-	loc.longitude = longitude;
-	loc.altitude = altitude;
-	loc.name = "GPS";
-	StelApp::getInstance().getCore()->moveObserverTo(loc, 0.);
-	StelApp::getInstance().getCore()->setDefaultLocationID(loc.getID());
-	if (accuracy < 500) // Stop GPS when accuracy is < 500 m.
-	{
-		setGPSStatus(false);
-		state = Found;
-		emit stateChanged(state);
-	}
+	if (value && source->lastKnownPosition().isValid())
+		positionUpdated(source->lastKnownPosition());
 }

@@ -43,8 +43,7 @@
 #include "StelIniParser.hpp"
 #include "StelSkyDrawer.hpp"
 #include "StelPainter.hpp"
-#include "karchive.h"
-#include "kzip.h"
+#include "qzipreader.h"
 
 // Class which manages the cardinal points displaying
 class Cardinals
@@ -702,7 +701,6 @@ QMap<QString,QString> LandscapeMgr::getNameToDirMap() const
 	return result;
 }
 
-
 QString LandscapeMgr::installLandscapeFromArchive(QString sourceFilePath, bool display, bool toMainDirectory)
 {
 	Q_UNUSED(toMainDirectory);
@@ -714,7 +712,6 @@ QString LandscapeMgr::installLandscapeFromArchive(QString sourceFilePath, bool d
 	}
 
 	QDir parentDestinationDir;
-	//TODO: Fix the "for all users" option
 	parentDestinationDir.setPath(StelFileMgr::getUserDir());
 
 	if (!parentDestinationDir.exists("landscapes"))
@@ -729,8 +726,8 @@ QString LandscapeMgr::installLandscapeFromArchive(QString sourceFilePath, bool d
 	}
 	QDir destinationDir (parentDestinationDir.absoluteFilePath("landscapes"));
 
-	KZip sourceArchive(sourceFilePath);
-	if(!sourceArchive.open(QIODevice::ReadOnly))
+	QZipReader reader(sourceFilePath);
+	if (reader.status() != QZipReader::NoError)
 	{
 		qWarning() << "LandscapeMgr: Unable to open as a ZIP archive:" << QDir::toNativeSeparators(sourceFilePath);
 		emit errorNotArchive();
@@ -738,56 +735,30 @@ QString LandscapeMgr::installLandscapeFromArchive(QString sourceFilePath, bool d
 	}
 
 	//Detect top directory
-	const KArchiveDirectory * archiveTopDirectory = NULL;
-	QStringList topLevelContents = sourceArchive.directory()->entries();
-	if(topLevelContents.contains("landscape.ini"))
+	QString topDir, iniPath;
+	QList<QZipReader::FileInfo> infoList = reader.fileInfoList();
+	foreach(QZipReader::FileInfo info, infoList)
 	{
-		//If the landscape archive has no top level directory...
-		//(test case is "tulipfield" from the Stellarium Wiki)
-		archiveTopDirectory = sourceArchive.directory();
-	}
-	else
-	{
-		foreach (QString entryPath, topLevelContents)
+		QFileInfo fileInfo(info.filePath);
+		if (fileInfo.fileName() == "landscape.ini")
 		{
-			if (sourceArchive.directory()->entry(entryPath)->isDirectory())
-			{
-				if((dynamic_cast<const KArchiveDirectory*>(sourceArchive.directory()->entry(entryPath)))->entries().contains("landscape.ini"))
-				{
-					archiveTopDirectory = dynamic_cast<const KArchiveDirectory*>(sourceArchive.directory()->entry(entryPath));
-					break;
-				}
-			}
+			iniPath = info.filePath;
+			topDir = fileInfo.dir().path();
+			break;
 		}
 	}
-	if (archiveTopDirectory == NULL)
+	if (topDir.isEmpty())
 	{
 		qWarning() << "LandscapeMgr: Unable to install landscape. There is no directory that contains a 'landscape.ini' file in the source archive.";
 		emit errorNotArchive();
 		return QString();
 	}
-
-	/*
-	qDebug() << "LandscapeMgr: Contents of the source archive:" << endl
-			 << "- top level direcotory:" << archiveTopDirectory->name() << endl
-			 << "- contents:" << archiveTopDirectory->entries();
-	*/
-
-	//Check if the top directory name is unique
-	//TODO: Prompt rename? Rename silently?
-	/*
-	if (destinationDir.exists(archiveTopDirectory->name()))
-	{
-		qWarning() << "LandscapeMgr: Unable to install landscape. A directory named" << archiveTopDirectory->name() << "already exists in" << destinationDir.absolutePath();
-		return QString();
-	}
-	*/
 	//Determine the landscape's identifier
-	QString landscapeID = archiveTopDirectory->name();
+	QString landscapeID = QFileInfo(topDir).fileName();
 	if (landscapeID.length() < 2)
 	{
-		//If the archive has no top level directory (landscapeID is "/"),
-		//use the first 65 characters of its file name for an identifier
+		// If the archive has no top level directory
+		// use the first 65 characters of its file name for an identifier
 		QFileInfo sourceFileInfo(sourceFilePath);
 		landscapeID = sourceFileInfo.baseName().left(65);
 	}
@@ -804,10 +775,9 @@ QString LandscapeMgr::installLandscapeFromArchive(QString sourceFilePath, bool d
 	QTemporaryFile tempLandscapeIni("landscapeXXXXXX.ini");
 	if (tempLandscapeIni.open())
 	{
-		const KZipFileEntry * archLandscapeIni = static_cast<const KZipFileEntry*>(archiveTopDirectory->entry("landscape.ini"));
-		tempLandscapeIni.write(archLandscapeIni->createDevice()->readAll());
+		QByteArray iniData = reader.fileData(iniPath);
+		tempLandscapeIni.write(iniData);
 		tempLandscapeIni.close();
-
 		QSettings confLandscapeIni(tempLandscapeIni.fileName(), StelIniFormat);
 		QString landscapeName = confLandscapeIni.value("landscape/name").toString();
 		if (getAllLandscapeNames().contains(landscapeName))
@@ -819,8 +789,6 @@ QString LandscapeMgr::installLandscapeFromArchive(QString sourceFilePath, bool d
 	}
 
 	//Copy the landscape directory to the target
-	//sourceArchive.directory()->copyTo(destinationDir.absolutePath());
-
 	//This case already has been handled - and commented out - above. :)
 	if(destinationDir.exists(landscapeID))
 	{
@@ -834,18 +802,19 @@ QString LandscapeMgr::installLandscapeFromArchive(QString sourceFilePath, bool d
 	}
 	destinationDir.cd(landscapeID);
 	QString destinationDirPath = destinationDir.absolutePath();
-	QStringList landscapeFileEntries = archiveTopDirectory->entries();
-	foreach (QString entry, landscapeFileEntries)
+	foreach(QZipReader::FileInfo info, infoList)
 	{
-		const KArchiveEntry * archEntry = archiveTopDirectory->entry(entry);
-		if(archEntry->isFile())
+		QFileInfo fileInfo(info.filePath);
+		if (info.isFile && fileInfo.dir().path() == topDir)
 		{
-			static_cast<const KZipFileEntry*>(archEntry)->copyTo(destinationDirPath);
+			QByteArray data = reader.fileData(info.filePath);
+			QFile out(destinationDir.filePath(fileInfo.fileName()));
+			out.open(QIODevice::WriteOnly);
+			out.write(data);
+			out.close();
 		}
 	}
-
-	sourceArchive.close();
-
+	reader.close();
 	//If necessary, make the new landscape the current landscape
 	if (display)
 	{

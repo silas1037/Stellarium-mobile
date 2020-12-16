@@ -17,6 +17,8 @@
  * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
  */
 
+#ifndef Q_OS_IOS
+
 #include "SensorsMgr.hpp"
 #include "StelTranslator.hpp"
 #include "StelApp.hpp"
@@ -52,7 +54,8 @@ void SensorsMgr::init()
 {
 	addAction("actionSensorsControl", N_("Movement and Selection"), N_("Sensors"), "enabled");
 	accelerometerSensor = new QAccelerometer(this);
-	accelerometerSensor->setAccelerationMode(QAccelerometer::Gravity);
+	// Crash with Qt 5.3.
+	// accelerometerSensor->setAccelerationMode(QAccelerometer::Gravity);
 	magnetometerSensor = new QMagnetometer(this);
 }
 
@@ -115,7 +118,10 @@ void SensorsMgr::applyOrientation(float* x, float* y, float* z)
 	}
 }
 #else
-void SensorsMgr::applyOrientation(float* x, float *y, float* z) {}
+void SensorsMgr::applyOrientation(float* x, float *y, float* z) 
+{
+	Q_UNUSED(x); Q_UNUSED(y); Q_UNUSED(z);
+}
 #endif
 
 void SensorsMgr::update(double deltaTime)
@@ -179,3 +185,5 @@ void SensorsMgr::update(double deltaTime)
 	StelUtils::spheToRect(az, pitch, viewDirection);
 	mmgr->setViewDirectionJ2000(StelApp::getInstance().getCore()->altAzToJ2000(viewDirection));
 }
+
+#endif // Q_OS_IOS

@@ -23,7 +23,6 @@
 #include "StelProjector.hpp"
 #include "StelPainter.hpp"
 #include "StelCore.hpp"
-
 #include <stdexcept>
 #include <stdio.h>
 #include <QDebug>

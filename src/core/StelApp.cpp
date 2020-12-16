@@ -32,6 +32,7 @@
 #include "MeteorMgr.hpp"
 #include "LabelMgr.hpp"
 #include "StarMgr.hpp"
+#include "Satellites.hpp"
 #include "SolarSystem.hpp"
 #include "StelIniParser.hpp"
 #include "StelProjector.hpp"
@@ -176,14 +177,22 @@ void StelApp::deinitStatic()
  Create and initialize the main Stellarium application.
 *************************************************************************/
 StelApp::StelApp(QObject* parent)
-	: QObject(parent), core(NULL),
+	: QObject(parent), core(NULL)
 #ifndef DISABLE_SCRIPTING
-	  scriptAPIProxy(NULL), scriptMgr(NULL),
+	, scriptAPIProxy(NULL), scriptMgr(NULL)
 #endif
-	  stelGui(NULL), devicePixelsPerPixel(1.f), globalScalingRatio(1.f), fps(0),
-	  frame(0), timefr(0.), timeBase(0.), flagNightVision(false),
-	  confSettings(NULL), initialized(false), saveProjW(-1), saveProjH(-1), drawState(0)
-
+	, stelGui(NULL)
+	, devicePixelsPerPixel(1.f)
+	, globalScalingRatio(1.f)
+	, fps(0)
+	, frame(0)
+	, timefr(0.)
+	, timeBase(0.)
+	, flagNightVision(false)
+	, confSettings(NULL)
+	, initialized(false)
+	, saveProjW(-1)
+	, saveProjH(-1)
 {
 	// Stat variables
 	nbDownloadedFiles=0;
@@ -353,6 +362,11 @@ void StelApp::init(QSettings* conf)
 	networkAccessManager->setCache(cache);
 	connect(networkAccessManager, SIGNAL(finished(QNetworkReply*)), this, SLOT(reportFileDownloadFinished(QNetworkReply*)));
 
+#ifdef Q_OS_ANDROID
+	// Ugly hack for allowing to get here the buggy 0.9 second blocking initial network request with Qt5 on android
+	networkAccessManager->get(QNetworkRequest(QUrl("http://noctua-software.com/invalid")));
+#endif
+
 	// Stel Object Data Base manager
 	stelObjectMgr = new StelObjectMgr();
 	stelObjectMgr->init();
@@ -421,6 +435,11 @@ void StelApp::init(QSettings* conf)
 	LabelMgr* skyLabels = new LabelMgr();
 	skyLabels->init();
 	getModuleMgr().registerModule(skyLabels);
+
+	// Satellites
+	Satellites* satellites = new Satellites();
+	satellites->init();
+	getModuleMgr().registerModule(satellites);
 
 	// Sensors
 	SensorsMgr* sensors = new SensorsMgr();
@@ -529,38 +548,19 @@ void StelApp::update(double deltaTime)
 	stelObjectMgr->update(deltaTime);
 }
 
-//! Iterate through the drawing sequence.
-bool StelApp::drawPartial()
-{
-	if (drawState == 0)
-	{
-		if (!initialized)
-			return false;
-		core->preDraw();
-		drawState = 1;
-		return true;
-	}
-
-	const QList<StelModule*> modules = moduleMgr->getCallOrders(StelModule::ActionDraw);
-	int index = drawState - 1;
-	if (index < modules.size())
-	{
-		if (modules[index]->drawPartial(core))
-			return true;
-		drawState++;
-		return true;
-	}
-	core->postDraw();
-	drawState = 0;
-	return false;
-}
-
 //! Main drawing function called at each frame
 void StelApp::draw()
 {
-	Q_ASSERT(drawState == 0);
-	while (drawPartial()) {}
-	Q_ASSERT(drawState == 0);
+	if (!initialized)
+		return;
+	core->preDraw();
+
+	const QList<StelModule*> modules = moduleMgr->getCallOrders(StelModule::ActionDraw);
+	foreach(StelModule* module, modules)
+	{
+		module->draw(core);
+	}
+	core->postDraw();
 }
 
 /*************************************************************************

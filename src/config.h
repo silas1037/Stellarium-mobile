@@ -40,3 +40,6 @@
 #ifndef GL_DOUBLE
 	#define GL_DOUBLE 0x140A
 #endif
+
+#define GL_GLEXT_PROTOTYPES
+#include <qopengl.h>

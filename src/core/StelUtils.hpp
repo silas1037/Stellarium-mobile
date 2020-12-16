@@ -560,6 +560,8 @@ namespace StelUtils
 	//! @return sigma in seconds
 	double getDeltaTStandardError(const double jDay);
 
+	//! Uncompress gzip or zlib compressed data.
+	QByteArray uncompress(const QByteArray& data);
 }
 
 #endif // _STELUTILS_HPP_

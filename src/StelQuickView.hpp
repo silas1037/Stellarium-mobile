@@ -69,6 +69,8 @@ protected slots:
 	void synchronize();
 	void showGui();
 protected:
+	//! Return the size of the underlying surface in pixel.
+	QSize surfaceSize() const;
 	bool eventFilter(QObject *, QEvent *) Q_DECL_OVERRIDE;
 	void resizeEvent(QResizeEvent*) Q_DECL_OVERRIDE;
 private:

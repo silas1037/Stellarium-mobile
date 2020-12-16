@@ -92,6 +92,10 @@ void StelTranslator::initSystemLanguage()
 	else
 	{
 		systemLangName = QLocale::system().uiLanguages()[0];
+		// Fix for Chinese.
+		if (systemLangName == "zh")
+			systemLangName = "zh_CN";
+		systemLangName.replace('-', '_');
 	}
 
 	if (systemLangName.isEmpty())

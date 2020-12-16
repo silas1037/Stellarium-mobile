@@ -38,11 +38,6 @@
 #endif
 
 #include "StelFileMgr.hpp"
-#include "StelAndroid.hpp"
-
-#ifdef Q_OS_ANDROID
-#define QFileInfo AndroidFileInfo
-#endif
 
 // Initialize static members.
 QStringList StelFileMgr::fileLocations;
@@ -260,14 +255,7 @@ QSet<QString> StelFileMgr::listContents(const QString& path, const StelFileMgr::
 
 		QDir thisDir(thisPath.absoluteFilePath());
 		QStringList entryList;
-#ifdef Q_OS_ANDROID
-		if (li.startsWith("assets:"))
-			entryList = thisPath.entryList(); // Method of AndroidFileInfo.
-		else
-			entryList = thisDir.entryList();
-#else
 		entryList = thisDir.entryList();
-#endif
 		foreach (const QString& fileIt, entryList)
 		{
 			if (fileIt == ".." || fileIt == ".")

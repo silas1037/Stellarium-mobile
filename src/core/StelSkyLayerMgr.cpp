@@ -30,7 +30,6 @@
 #include "StelSkyDrawer.hpp"
 #include "StelTranslator.hpp"
 #include "StelProgressController.hpp"
-
 #include <QNetworkAccessManager>
 #include <stdexcept>
 #include <QDebug>

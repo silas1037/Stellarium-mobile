@@ -25,6 +25,7 @@
 #include "StelMainView.hpp"
 #include "StelApp.hpp"
 #include "StelCore.hpp"
+#include "StelIniParser.hpp"
 #include "SolarSystem.hpp"
 #include "StelLocaleMgr.hpp"
 #include "LandscapeMgr.hpp"
@@ -33,6 +34,7 @@
 #include "StelFileMgr.hpp"
 #include "StelLocationMgr.hpp"
 #include "StelActionMgr.hpp"
+#include "MilkyWay.hpp"
 
 #ifdef Q_OS_ANDROID
 #include "StelAndroid.hpp"
@@ -71,6 +73,9 @@ StelQuickStelItem::StelQuickStelItem()
 	
 	QGuiApplication::instance()->installEventFilter(this);
 	StelMainView::getInstance().installEventFilter(this);
+
+	mainThreadProxy = new MainThreadProxy;
+	mainThreadProxy->moveToThread(StelApp::getInstance().thread());
 }
 
 bool StelQuickStelItem::eventFilter(QObject* obj, QEvent* event)
@@ -159,11 +164,18 @@ QString StelQuickStelItem::getSelectedObjectName() const
 
 QString StelQuickStelItem::getSelectedObjectInfo() const
 {
-	StelObject::InfoStringGroup infoTextFilters = StelObject::InfoStringGroup(StelObject::PlainText | StelObject::Size | StelObject::Extra | StelObject::AltAzi | StelObject::RaDecOfDate);
+	StelObject::InfoStringGroup infoTextFilters = StelObject::InfoStringGroup(
+				StelObject::PlainText | StelObject::Size | StelObject::Extra | StelObject::AltAzi | StelObject::RaDecOfDate |
+				StelObject::CatalogNumber);
 	const QList<StelObjectP>& selected = GETSTELMODULE(StelObjectMgr)->getSelectedObject();
 	if (selected.empty()) return "";
+	StelCore* core = StelApp::getInstance().getCore();
 	StelObjectP object = selected[0];
-	return object->getInfoString(StelApp::getInstance().getCore(), infoTextFilters);
+	// If the object name already tells the catalog number, no need to show it again in the infos.
+	if (getSelectedObjectName().contains(
+	            object->getInfoString(core, StelObject::PlainText | StelObject::CatalogNumber).trimmed()))
+		infoTextFilters &= ~StelObject::CatalogNumber;
+	return object->getInfoString(core, infoTextFilters);
 }
 
 QString StelQuickStelItem::getSelectedObjectShortInfo() const
@@ -263,9 +275,39 @@ QString StelQuickStelItem::getCurrentLandscapeName() const
 void StelQuickStelItem::setCurrentLandscapeName(const QString& value)
 {
 	// setCurrentLandscapeName need to be called in the main thread.
+	QMetaObject::invokeMethod(mainThreadProxy, "setCurrentLandscapeName", Qt::AutoConnection, Q_ARG(QString, value));
+}
+
+void MainThreadProxy::setCurrentLandscapeID(const QString& value)
+{
 	LandscapeMgr* lmgr = GETSTELMODULE(LandscapeMgr);
-	QMetaObject::invokeMethod(lmgr, "setCurrentLandscapeName", Qt::AutoConnection,
-	                          Q_ARG(QString, value));
+	lmgr->setCurrentLandscapeID(value);
+	lmgr->setDefaultLandscapeID(lmgr->getCurrentLandscapeID());
+}
+
+
+void MainThreadProxy::setCurrentLandscapeName(const QString& value)
+{
+	LandscapeMgr* lmgr = GETSTELMODULE(LandscapeMgr);
+	lmgr->setCurrentLandscapeName(value);
+	lmgr->setDefaultLandscapeID(lmgr->getCurrentLandscapeID());
+}
+
+void MainThreadProxy::setLocation(const QString locationId)
+{
+	StelLocation loc = StelApp::getInstance().getLocationMgr().locationForString(locationId);
+	StelApp::getInstance().getCore()->moveObserverTo(loc, 0.);
+	StelApp::getInstance().getCore()->setDefaultLocationID(locationId);
+}
+
+void MainThreadProxy::setManualPosition(double latitude, double longitude)
+{
+	StelLocation loc;
+	loc.planetName = "Earth";
+	loc.latitude = latitude;
+	loc.longitude = longitude;
+	StelApp::getInstance().getCore()->moveObserverTo(loc, 0.);
+	StelApp::getInstance().getCore()->setDefaultLocationID(loc.getID());
 }
 
 QString StelQuickStelItem::getCurrentLandscapeHtmlDescription() const {
@@ -285,7 +327,9 @@ QString StelQuickStelItem::getCurrentSkyCultureI18() const
 
 void StelQuickStelItem::setCurrentSkyCultureI18(const QString& value)
 {
-	StelApp::getInstance().getSkyCultureMgr().setCurrentSkyCultureNameI18(value);
+	StelSkyCultureMgr* sc = &StelApp::getInstance().getSkyCultureMgr();
+	sc->setCurrentSkyCultureNameI18(value);
+	sc->setDefaultSkyCultureID(sc->getCurrentSkyCultureID());
 	emit currentSkyCultureChanged();
 	emit currentSkyCultureBaseUrlChanged();
 }
@@ -368,9 +412,7 @@ QString StelQuickStelItem::getLocation() const
 
 void StelQuickStelItem::setLocation(const QString locationId)
 {
-	StelLocation loc = StelApp::getInstance().getLocationMgr().locationForString(locationId);
-	StelApp::getInstance().getCore()->moveObserverTo(loc, 0.);
-	StelApp::getInstance().getCore()->setDefaultLocationID(locationId);
+	QMetaObject::invokeMethod(mainThreadProxy, "setLocation", Qt::AutoConnection, Q_ARG(QString, locationId));
 }
 
 double StelQuickStelItem::getLatitude() const
@@ -381,12 +423,8 @@ double StelQuickStelItem::getLatitude() const
 
 void StelQuickStelItem::setManualPosition(double latitude, double longitude)
 {
-	StelLocation loc;
-	loc.planetName = "Earth";
-	loc.latitude = latitude;
-	loc.longitude = longitude;
-	StelApp::getInstance().getCore()->moveObserverTo(loc, 0.);
-	StelApp::getInstance().getCore()->setDefaultLocationID(loc.getID());
+	QMetaObject::invokeMethod(mainThreadProxy, "setManualPosition", Qt::AutoConnection,
+							  Q_ARG(double, latitude), Q_ARG(double, longitude));
 }
 
 
@@ -465,10 +503,10 @@ bool StelQuickStelItem::isDay() const
 
 bool StelQuickStelItem::isDesktop() const
 {
-#ifndef Q_OS_ANDROID
-	return true;
-#else
+#if defined Q_OS_ANDROID || defined Q_OS_IOS
 	return false;
+#else
+	return true;
 #endif
 }
 
@@ -489,3 +527,68 @@ QString StelQuickStelItem::getGpsState() const
 	}
 }
 
+int StelQuickStelItem::getLightPollution() const
+{
+	return StelApp::getInstance().getCore()->getSkyDrawer()->getBortleScale();
+}
+
+void StelQuickStelItem::setLightPollution(int value)
+{
+	LandscapeMgr* lmgr = GETSTELMODULE(LandscapeMgr);
+	lmgr->setAtmosphereBortleLightPollution(value);
+	StelApp::getInstance().getCore()->getSkyDrawer()->setBortleScale(value);
+	StelApp::getInstance().getSettings()->setValue("stars/init_bortle_scale", value);
+	emit lightPollutionChanged();
+}
+
+int StelQuickStelItem::getMilkyWayBrightness() const
+{
+	MilkyWay* mw = GETSTELMODULE(MilkyWay);
+	return mw->getIntensity();
+}
+
+void StelQuickStelItem::setMilkyWayBrightness(int value)
+{
+	MilkyWay* mw = GETSTELMODULE(MilkyWay);
+	mw->setIntensity(value);
+	StelApp::getInstance().getSettings()->setValue("astro/milky_way_intensity", value);
+	emit milkyWayBrightnessChanged();
+}
+
+void StelQuickStelItem::resetSettings()
+{
+	QString defaultConfigFilePath = StelFileMgr::findFile("data/default_config.ini");
+	QSettings conf(defaultConfigFilePath, StelIniFormat);
+	setMilkyWayBrightness(conf.value("astro/milky_way_intensity",1.f).toFloat());
+	setLightPollution(conf.value("stars/init_bortle_scale",2).toInt());
+	QMetaObject::invokeMethod(mainThreadProxy, "setCurrentLandscapeID", Qt::AutoConnection,
+	                          Q_ARG(QString, conf.value("init_location/landscape_name").toString()));
+	StelSkyCultureMgr* sc = &StelApp::getInstance().getSkyCultureMgr();
+	sc->setCurrentSkyCultureID(conf.value("localization/sky_culture", "western").toString());
+	sc->setDefaultSkyCultureID(sc->getCurrentSkyCultureID());
+
+	const char *actions[][2] = {
+		{"actionShow_Constellation_Lines", "viewing/flag_constellation_drawing"},
+	    {"actionShow_Constellation_Labels", "viewing/flag_constellation_name"},
+	    {"actionShow_Constellation_Art", "viewing/flag_constellation_art"},
+	    {"actionShow_Equatorial_Grid", "viewing/flag_equatorial_grid"},
+	    {"actionShow_Azimuthal_Grid", "viewing/flag_azimuthal_grid"},
+	    {"actionShow_Ground", "landscape/flag_landscape"},
+	    {"actionShow_Atmosphere", "landscape/flag_atmosphere"},
+	    {"actionShow_Cardinal_Points", "viewing/flag_cardinal_points"},
+	    {"actionShow_Nebulas", "astro/flag_nebula_name"},
+	    {"actionShow_Satellite_hints", "Satellites/hints_visible"},
+	    {"actionShow_Planets_Labels", "astro/flag_planets_labels"},
+	    {"actionShow_Planets_Hints", "astro/flag_planets_hints"},
+	    {"actionShow_Ecliptic_Line", "viewing/flag_ecliptic_line"},
+	};
+	for (unsigned int i = 0; i < sizeof(actions) / sizeof(actions[0]); i++)
+	{
+		QVariant value = conf.value(actions[i][1]);
+		if (value.isNull()) continue;
+		StelAction* action = StelApp::getInstance().getStelActionManager()->findAction(actions[i][0]);
+		Q_ASSERT(action);
+		action->setChecked(value.toBool());
+		writeSetting(actions[i][1], value.toBool());
+	}
+}

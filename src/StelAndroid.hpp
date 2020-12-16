@@ -33,32 +33,3 @@ public:
 private:
 	static class QAndroidJniObject* getStellarium();
 };
-
-//! A subclass of QFileInfo that optimize access to assets files by using
-//! a precomputed list of all the assets.
-//! This is just a hack to improve the loading speed on android.
-//! At the first occasion we should remove this class.
-class AndroidFileInfo : protected QFileInfo
-{
-public:
-	AndroidFileInfo(const QString& file);
-	bool isAbsolute() const;
-	QString	filePath() const;
-	QString absoluteFilePath() const;
-	QString	baseName();
-	bool exists() const;
-	bool isWritable() const;
-	bool isReadable() const;
-	bool isFile() const;
-	bool isDir() const;
-	qint64 size();
-	QDir dir() const;
-	QStringList entryList() const;
-private:
-	void compute();
-	static QStringList entries;
-	static void initEntries();
-	static bool initialized;
-	bool isAsset; // The file in the assets.
-	QString path;
-};

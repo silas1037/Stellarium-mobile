@@ -55,13 +55,6 @@
 #include "StelSkyDrawer.hpp"
 #include "RefractionExtinction.hpp"
 
-#include <errno.h>
-#ifndef Q_OS_WIN
-#include <unistd.h>
-#else
-#include "kdewin32/unistd.h"
-#endif
-
 static QStringList spectral_array;
 static QStringList component_array;
 
